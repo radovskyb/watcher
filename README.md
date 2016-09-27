@@ -55,7 +55,9 @@ func main() {
 	}
 
 	// Start the watcher
-	watcher.Start()
+	if err := watcher.Start(); err != nil {
+		log.Fatalln(err)	
+	}
 
 	wg.Wait()
 }
