@@ -11,9 +11,9 @@ import (
 func main() {
 	w := watcher.New()
 
-	var wg sync.WaitGroup	
+	var wg sync.WaitGroup
 	wg.Add(1)
-	
+
 	go func() {
 		defer wg.Done()
 		for {
@@ -48,3 +48,4 @@ func main() {
 	}
 
 	wg.Wait()
+}
