@@ -5,7 +5,7 @@
 
 `watcher`'s simple structure is similar in appearance to fsnotify, yet is much smaller and doesn't use any system specific events, so should work cross platform easily and consistently.
 
-# Todo
+# Todo:
 
 1. Write tests.
 2. Notify name of file from event.
