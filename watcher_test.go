@@ -1,6 +1,9 @@
 package watcher
 
-import "testing"
+import (
+	"path/filepath"
+	"testing"
+)
 
 const testDir = "examples/test_folder"
 
@@ -61,5 +64,22 @@ func TestWatcherRemove(t *testing.T) {
 	// Make sure len(w.Names) is now 0.
 	if len(w.Names) != 0 {
 		t.Errorf("expected len(w.Names) to be empty, len(w.Names): %s", len(w.Names))
+	}
+}
+
+func TestListFiles(t *testing.T) {
+	fInfoList, err := ListFiles(testDir)
+	if err != nil {
+		t.Error(err)
+	}
+
+	// Make sure fInfoTest contains the correct os.FileInfo names.
+	if fInfoList[0].Name() != filepath.Base(testDir) {
+		t.Errorf("expected fInfoList[0].Name() to be test_folder, got %s",
+			fInfoList[0].Name())
+	}
+	if fInfoList[1].Name() != "file.txt" {
+		t.Errorf("expected fInfoList[1].Name() to be file.txt, got %s",
+			fInfoList[1].Name())
 	}
 }
