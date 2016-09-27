@@ -17,19 +17,19 @@ var (
 	ErrWatchedFileDeleted = errors.New("error: watched file or folder deleted")
 )
 
-// An Event is a type that is used to describe what type
+// An EventType is a type that is used to describe what type
 // of event has occured during the watching process.
-type Event int
+type EventType int
 
 const (
-	EventFileAdded Event = 1 << iota
+	EventFileAdded EventType = 1 << iota
 	EventFileDeleted
 	EventFileModified
 )
 
 // String returns a small string depending on what
 // type of event it is.
-func (e Event) String() string {
+func (e EventType) String() string {
 	switch e {
 	case EventFileAdded:
 		return "FILE/FOLDER ADDED"
@@ -40,6 +40,11 @@ func (e Event) String() string {
 	default:
 		return "UNRECOGNIZED EVENT"
 	}
+}
+
+type Event struct {
+	EventType
+	File
 }
 
 // A Watcher describes a file watcher.
@@ -126,8 +131,6 @@ func (w *Watcher) Remove(name string) error {
 		return err
 	}
 
-	// TODO: Make more precise remove method. Make os.FileInfo's mapped to dir?
-	//
 	// Remove the appropriate os.FileInfo's from w's os.FileInfo list.
 	for _, file := range fileList {
 		for i, wFile := range w.Files {
@@ -168,18 +171,40 @@ func (w *Watcher) Start(pollInterval int) error {
 
 		if len(fileList) > len(w.Files) {
 			// Check for new files.
-			w.Event <- EventFileAdded
+			w.Event <- Event{
+				EventType: EventFileAdded,
+				File:      w.Files[len(w.Files)],
+			}
 			w.Files = fileList
 		} else if len(fileList) < len(w.Files) {
 			// Check for deleted files.
-			w.Event <- EventFileDeleted
+			//
+			// Find the missing file.
+			var missingFile File
+			for i, file := range w.Files {
+				// Shouldn't happen with one list shorter than the other.
+				if len(fileList) == i {
+					break
+				}
+				// Check if the file is missing.
+				if fileList[i] != file {
+					missingFile = file
+				}
+			}
+			w.Event <- Event{
+				EventType: EventFileAdded,
+				File:      missingFile,
+			}
 			w.Files = fileList
 		}
 
 		// Check for modified files.
 		for i, file := range w.Files {
 			if fileList[i].ModTime() != file.ModTime() {
-				w.Event <- EventFileModified
+				w.Event <- Event{
+					EventType: EventFileModified,
+					File:      file,
+				}
 				w.Files = fileList
 				break
 			}
