@@ -173,7 +173,7 @@ func (w *Watcher) Start(pollInterval int) error {
 			// Check for new files.
 			w.Event <- Event{
 				EventType: EventFileAdded,
-				File:      w.Files[len(w.Files)],
+				File:      fileList[len(w.Files)],
 			}
 			w.Files = fileList
 		} else if len(fileList) < len(w.Files) {
