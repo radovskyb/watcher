@@ -134,8 +134,11 @@ func TestEventDeleteFile(t *testing.T) {
 
 	// Put the file back when the test is finished.
 	defer func() {
-		err := ioutil.WriteFile(fileName, []byte(""), 0644)
+		f, err := os.Create(fileName)
 		if err != nil {
+			t.Error(err)
+		}
+		if err := f.Close(); err != nil {
 			t.Error(err)
 		}
 	}()
