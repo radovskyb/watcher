@@ -122,3 +122,44 @@ func TestEventAddFile(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestEventDeleteFile(t *testing.T) {
+	fileName := filepath.Join(testDir, "file.txt")
+
+	// Put the file back when the test is finished.
+	defer func() {
+		err := ioutil.WriteFile(fileName, []byte(""), os.ModePerm)
+		if err != nil {
+			t.Error(err)
+		}
+	}()
+
+	w := New()
+
+	// Add the testDir to the watchlist.
+	if err := w.Add(testDir); err != nil {
+		t.Error(err)
+	}
+
+	go func() {
+		// Start the watching process.
+		if err := w.Start(100); err != nil {
+			t.Error(err)
+		}
+	}()
+
+	go func() {
+		select {
+		case event := <-w.Event:
+			if event != EventFileDeleted {
+				t.Error("expected event EventFileDeleted, got %s", event)
+			}
+		case <-time.After(time.Millisecond * 200):
+			t.Error("received no event from Event channel")
+		}
+	}()
+
+	if err := os.Remove(fileName); err != nil {
+		t.Error(err)
+	}
+}
