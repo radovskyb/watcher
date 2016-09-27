@@ -58,8 +58,8 @@ func main() {
 		fmt.Println(f.Name())
 	}
 
-	// Start the watcher
-	if err := w.Start(); err != nil {
+	// Start the watcher to check for changes every 100ms.
+	if err := w.Start(100); err != nil {
 		log.Fatalln(err)
 	}
 

@@ -128,8 +128,13 @@ func (w *Watcher) Remove(name string) error {
 	return nil
 }
 
-// Start starts the watching process.
-func (w *Watcher) Start() error {
+// Start starts the watching process and checks for changes every `pollInterval`
+// amount of milliseconds. If pollInterval is 0, the default is 100ms.
+func (w *Watcher) Start(pollInterval int) error {
+	if pollInterval == 0 {
+		pollInterval = 100
+	}
+
 	if len(w.Names) < 1 {
 		return ErrNothingAdded
 	}
@@ -169,7 +174,7 @@ func (w *Watcher) Start() error {
 		}
 
 		// Sleep for a little bit.
-		time.Sleep(time.Millisecond * 100)
+		time.Sleep(time.Millisecond * time.Duration(pollInterval))
 	}
 
 	return nil
