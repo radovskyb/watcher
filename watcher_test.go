@@ -29,6 +29,21 @@ func TestWatcherAdd(t *testing.T) {
 		t.Errorf("expected w.Names[0] to be %s, got %s",
 			testDir, w.Names[0])
 	}
+
+	if w.Files[0].Dir != "test_folder" {
+		t.Errorf("expected w.Files[0].Dir to be %s, got %s",
+			"test_folder", w.Files[0].Dir)
+	}
+
+	if w.Files[1].Dir != "test_folder" {
+		t.Errorf("expected w.Files[1].Dir to be %s, got %s",
+			"test_folder", w.Files[1].Dir)
+	}
+
+	if w.Files[3].Dir != "test_folder_recursive" {
+		t.Errorf("expected w.Files[3].Dir to be %s, got %s",
+			"test_folder_recursive", w.Files[3].Dir)
+	}
 }
 
 func TestWatcherAddNotFound(t *testing.T) {
@@ -72,19 +87,19 @@ func TestWatcherRemove(t *testing.T) {
 }
 
 func TestListFiles(t *testing.T) {
-	fInfoList, err := ListFiles(testDir)
+	fileList, err := ListFiles(testDir)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// Make sure fInfoTest contains the correct os.FileInfo names.
-	if fInfoList[0].Name() != filepath.Base(testDir) {
+	if fileList[0].Info.Name() != filepath.Base(testDir) {
 		t.Errorf("expected fInfoList[0].Name() to be test_folder, got %s",
-			fInfoList[0].Name())
+			fileList[0].Info.Name())
 	}
-	if fInfoList[1].Name() != "file.txt" {
+	if fileList[1].Info.Name() != "file.txt" {
 		t.Errorf("expected fInfoList[1].Name() to be file.txt, got %s",
-			fInfoList[1].Name())
+			fileList[1].Info.Name())
 	}
 }
 
