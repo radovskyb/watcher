@@ -1,18 +1,3 @@
-# watcher
-`watcher` is a simple Go package for watching for file/file's or directory/multiple directory changes.
-
-`watcher` is a watcher that watches for file/file's and/or directory/multiple directory changes and notifies over a channel anytime an event has occured.
-
-`watcher`'s simple structure is similar in appearance to fsnotify, yet is much smaller and doesn't use any system specific events, so should work cross platform easily and consistently.
-
-# Todo
-
-1. Write tests.
-2. Notify name of file from event.
-
-# Example:
-
-```go
 package main
 
 import (
@@ -59,4 +44,3 @@ func main() {
 
 	wg.Wait()
 }
-```
