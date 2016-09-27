@@ -134,7 +134,21 @@ func TestEventAddFile(t *testing.T) {
 	wg.Add(1)
 
 	select {
-	case <-w.Event:
+	case event := <-w.Event:
+		// TODO: Make event's accurate where if a modified event is a file,
+		// don't return the file's folder first as a modified folder.
+		//
+		// Will be modified event because the folder will be checked first.
+		if event.EventType != EventFileModified {
+			t.Errorf("expected event to be EventFileModified, got %s",
+				event.EventType)
+		}
+		// For the same reason as above, the modified file won't be newfile.txt,
+		// but rather test_folder.
+		if event.Name() != "test_folder" {
+			t.Errorf("expected event file name to be test_folder, got %s",
+				event.Name())
+		}
 		wg.Done()
 	case <-time.After(time.Millisecond * 250):
 		t.Error("received no event from Event channel")
