@@ -3,7 +3,9 @@
 
 `watcher` is a watcher that watches for changes and notifies over channel's either anytime an event or an error has occured.
 
-`watcher`'s simple structure is similar in appearance to fsnotify, yet is much smaller and doesn't use any system specific events, so should work cross platform easily and consistently.
+`watcher`'s simple structure is purposely similar in appearance to fsnotify, yet doesn't use any system specific events, so should work cross platform consistently.
+
+With `watcher`, when adding a folder to the watchlist, the folder will be watched recursively.
 
 # Todo:
 
@@ -44,6 +46,8 @@ func main() {
 	if err := w.Add("main.go"); err != nil {
 		log.Fatalln(err)
 	}
+
+	// Watch test_folder recursively for changes.
 	if err := w.Add("test_folder"); err != nil {
 		log.Fatalln(err)
 	}

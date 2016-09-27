@@ -29,6 +29,8 @@ func main() {
 	if err := w.Add("main.go"); err != nil {
 		log.Fatalln(err)
 	}
+
+	// Watch test_folder recursively for changes.
 	if err := w.Add("test_folder"); err != nil {
 		log.Fatalln(err)
 	}
