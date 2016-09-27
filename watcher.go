@@ -119,10 +119,16 @@ func (w *Watcher) Remove(name string) error {
 		return err
 	}
 
+	// TODO: Make more precise remove method. Make os.FileInfo's mapped to dir?
+	//
 	// Remove the appropriate os.FileInfo's from w's os.FileInfo list.
-	for i, fInfo := range fInfoList {
-		if w.Files[i] == fInfo {
-			w.Files = append(w.Files[:i], w.Files[i+1:]...)
+	for _, fInfo := range fInfoList {
+		for i, wfInfo := range w.Files {
+			if wfInfo.Name() == fInfo.Name() &&
+				wfInfo.Size() == fInfo.Size() &&
+				wfInfo.ModTime() == fInfo.ModTime() {
+				w.Files = append(w.Files[:i], w.Files[i+1:]...)
+			}
 		}
 	}
 	return nil
