@@ -1,7 +1,7 @@
 # watcher
 `watcher` is a simple Go package for watching for file/file's or directory/multiple directory changes.
 
-`watcher` is a watcher that watches for changes and notifies over a channel's either anytime an event or an error has occured.
+`watcher` is a watcher that watches for changes and notifies over channel's either anytime an event or an error has occured.
 
 `watcher`'s simple structure is similar in appearance to fsnotify, yet is much smaller and doesn't use any system specific events, so should work cross platform easily and consistently.
 
