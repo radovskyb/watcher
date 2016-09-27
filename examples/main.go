@@ -20,6 +20,8 @@ func main() {
 			select {
 			case event := <-w.Event:
 				fmt.Println(event)
+				// Print the event file's name.
+				fmt.Println(event.Name())
 			case err := <-w.Error:
 				log.Fatalln(err)
 			}
