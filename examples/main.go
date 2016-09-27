@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	watcher := watcher.New()
+	w := watcher.New()
 
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
@@ -17,30 +17,30 @@ func main() {
 		defer wg.Done()
 		for {
 			select {
-			case event := <-watcher.Event:
+			case event := <-w.Event:
 				fmt.Println(event)
-			case err := <-watcher.Error:
+			case err := <-w.Error:
 				log.Fatalln(err)
 			}
 		}
 	}()
 
 	// Watch this file for changes.
-	if err := watcher.Add("main.go"); err != nil {
+	if err := w.Add("main.go"); err != nil {
 		log.Fatalln(err)
 	}
-	if err := watcher.Add("test_folder"); err != nil {
+	if err := w.Add("test_folder"); err != nil {
 		log.Fatalln(err)
 	}
 
 	// Print a list of all of the file's and folders currently
 	// being watched.
-	for _, f := range watcher.Files {
+	for _, f := range w.Files {
 		fmt.Println(f.Name())
 	}
 
 	// Start the watcher
-	if err := watcher.Start(); err != nil {
+	if err := w.Start(); err != nil {
 		log.Fatalln(err)
 	}
 

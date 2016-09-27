@@ -7,9 +7,15 @@ import (
 	"time"
 )
 
-// ErrNothingAdded is an error that occurs when a Watcher's Start() method is
-// called and no files or folders have been added to the Watcher's watchlist.
-var ErrNothingAdded = errors.New("error: no files added to the watchlist")
+var (
+	// ErrNothingAdded is an error that occurs when a Watcher's Start() method is
+	// called and no files or folders have been added to the Watcher's watchlist.
+	ErrNothingAdded = errors.New("error: no files added to the watchlist")
+
+	// ErrWatchedFileDeleted is an error that occurs when a file or folder that was
+	// being watched has been deleted.
+	ErrWatchedFileDeleted = errors.New("error: watched file or folder deleted")
+)
 
 // An Event is a type that is used to describe what type
 // of event has occured during the watching process.
@@ -133,7 +139,11 @@ func (w *Watcher) Start() error {
 			// Retrieve the list of os.FileInfo's from w.Name.
 			list, err := ListFiles(name)
 			if err != nil {
-				w.Error <- err
+				if os.IsNotExist(err) {
+					w.Error <- ErrWatchedFileDeleted
+				} else {
+					w.Error <- err
+				}
 			}
 			fInfoList = append(fInfoList, list...)
 		}
