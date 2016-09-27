@@ -93,13 +93,13 @@ func TestListFiles(t *testing.T) {
 	}
 
 	// Make sure fInfoTest contains the correct os.FileInfo names.
-	if fileList[0].Info.Name() != filepath.Base(testDir) {
+	if fileList[0].Name() != filepath.Base(testDir) {
 		t.Errorf("expected fInfoList[0].Name() to be test_folder, got %s",
-			fileList[0].Info.Name())
+			fileList[0].Name())
 	}
-	if fileList[1].Info.Name() != "file.txt" {
+	if fileList[1].Name() != "file.txt" {
 		t.Errorf("expected fInfoList[1].Name() to be file.txt, got %s",
-			fileList[1].Info.Name())
+			fileList[1].Name())
 	}
 }
 

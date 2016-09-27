@@ -52,8 +52,8 @@ type Watcher struct {
 
 // A Watcher describes a file/folder being watched.
 type File struct {
-	Dir  string
-	Info os.FileInfo
+	Dir string
+	os.FileInfo
 }
 
 // New returns a new initialized *Watcher.
@@ -80,7 +80,7 @@ func (w *Watcher) Add(name string) error {
 
 	// If watching a single file, add it and return.
 	if !fInfo.IsDir() {
-		w.Files = append(w.Files, File{Dir: filepath.Dir(fInfo.Name()), Info: fInfo})
+		w.Files = append(w.Files, File{Dir: filepath.Dir(fInfo.Name()), FileInfo: fInfo})
 		return nil
 	}
 
@@ -112,7 +112,7 @@ func (w *Watcher) Remove(name string) error {
 	// If name is a single file, remove it and return.
 	if !fInfo.IsDir() {
 		for i := range w.Files {
-			if w.Files[i].Info == fInfo &&
+			if w.Files[i].FileInfo == fInfo &&
 				w.Files[i].Dir == filepath.Dir(fInfo.Name()) {
 				w.Files = append(w.Files[:i], w.Files[i+1:]...)
 			}
@@ -132,7 +132,7 @@ func (w *Watcher) Remove(name string) error {
 	for _, file := range fileList {
 		for i, wFile := range w.Files {
 			if wFile.Dir == file.Dir &&
-				wFile.Info.Name() == file.Info.Name() {
+				wFile.Name() == file.Name() {
 				w.Files = append(w.Files[:i], w.Files[i+1:]...)
 			}
 		}
@@ -178,7 +178,7 @@ func (w *Watcher) Start(pollInterval int) error {
 
 		// Check for modified files.
 		for i, file := range w.Files {
-			if fileList[i].Info.ModTime() != file.Info.ModTime() {
+			if fileList[i].ModTime() != file.ModTime() {
 				w.Event <- EventFileModified
 				w.Files = fileList
 				break
@@ -209,7 +209,7 @@ func ListFiles(name string) ([]File, error) {
 			return err
 		}
 
-		fileList = append(fileList, File{Dir: currentDir, Info: info})
+		fileList = append(fileList, File{Dir: currentDir, FileInfo: info})
 		return nil
 	}); err != nil {
 		return nil, err
