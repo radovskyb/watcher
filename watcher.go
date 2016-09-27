@@ -37,8 +37,9 @@ func (e Event) String() string {
 		return "FILE/FOLDER DELETED"
 	case EventFileModified:
 		return "FILE/FOLDER MODIFIED"
+	default:
+		return "UNRECOGNIZED EVENT"
 	}
-	return "UNRECOGNIZED EVENT"
 }
 
 // A Watcher describes a file watcher.
