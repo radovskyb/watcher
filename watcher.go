@@ -171,30 +171,11 @@ func (w *Watcher) Start(pollInterval int) error {
 
 		if len(fileList) > len(w.Files) {
 			// Check for new files.
-			w.Event <- Event{
-				EventType: EventFileAdded,
-				File:      fileList[len(w.Files)],
-			}
+			w.Event <- Event{EventType: EventFileAdded}
 			w.Files = fileList
 		} else if len(fileList) < len(w.Files) {
 			// Check for deleted files.
-			//
-			// Find the missing file.
-			var missingFile File
-			for i, file := range w.Files {
-				// Shouldn't happen with one list shorter than the other.
-				if len(fileList) == i {
-					break
-				}
-				// Check if the file is missing.
-				if fileList[i] != file {
-					missingFile = file
-				}
-			}
-			w.Event <- Event{
-				EventType: EventFileAdded,
-				File:      missingFile,
-			}
+			w.Event <- Event{EventType: EventFileDeleted}
 			w.Files = fileList
 		}
 

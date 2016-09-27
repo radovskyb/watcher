@@ -44,7 +44,11 @@ func main() {
 			case event := <-w.Event:
 				fmt.Println(event)
 				// Print the event file's name.
-				fmt.Println(event.Name())
+				//
+				// (currently only works for modified files)
+				if event.EventType == watcher.EventFileModified {
+					fmt.Println(event.Name())
+				}
 			case err := <-w.Error:
 				log.Fatalln(err)
 			}
