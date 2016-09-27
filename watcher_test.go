@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 )
@@ -103,24 +104,29 @@ func TestEventAddFile(t *testing.T) {
 	}()
 
 	go func() {
-		select {
-		case event := <-w.Event:
-			if event != EventFileAdded {
-				t.Error("expected event EventFileAdded, got %s", event)
-			}
-		case <-time.After(time.Millisecond * 200):
-			t.Error("received no event from Event channel")
+		time.Sleep(time.Millisecond * 10)
+		newFileName := filepath.Join(testDir, "newfile.txt")
+		err := ioutil.WriteFile(newFileName, []byte("Hello, World!"), os.ModePerm)
+		if err != nil {
+			t.Error(err)
+		}
+		if err := os.Remove(newFileName); err != nil {
+			t.Error(err)
 		}
 	}()
 
-	newFileName := filepath.Join(testDir, "newfile.txt")
-	err := ioutil.WriteFile(newFileName, []byte("Hello, World!"), os.ModePerm)
-	if err != nil {
-		t.Error(err)
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	select {
+	case <-w.Event:
+		wg.Done()
+	case <-time.After(time.Millisecond * 250):
+		t.Error("received no event from Event channel")
+		wg.Done()
 	}
-	if err := os.Remove(newFileName); err != nil {
-		t.Error(err)
-	}
+
+	wg.Wait()
 }
 
 func TestEventDeleteFile(t *testing.T) {
@@ -149,17 +155,22 @@ func TestEventDeleteFile(t *testing.T) {
 	}()
 
 	go func() {
-		select {
-		case event := <-w.Event:
-			if event != EventFileDeleted {
-				t.Error("expected event EventFileDeleted, got %s", event)
-			}
-		case <-time.After(time.Millisecond * 200):
-			t.Error("received no event from Event channel")
+		time.Sleep(time.Millisecond * 10)
+		if err := os.Remove(fileName); err != nil {
+			t.Error(err)
 		}
 	}()
 
-	if err := os.Remove(fileName); err != nil {
-		t.Error(err)
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	select {
+	case <-w.Event:
+		wg.Done()
+	case <-time.After(time.Millisecond * 250):
+		t.Error("received no event from Event channel")
+		wg.Done()
 	}
+
+	wg.Wait()
 }
