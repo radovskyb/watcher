@@ -1,8 +1,11 @@
 package watcher
 
 import (
+	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 const testDir = "examples/test_folder"
@@ -81,5 +84,41 @@ func TestListFiles(t *testing.T) {
 	if fInfoList[1].Name() != "file.txt" {
 		t.Errorf("expected fInfoList[1].Name() to be file.txt, got %s",
 			fInfoList[1].Name())
+	}
+}
+
+func TestEventAddFile(t *testing.T) {
+	w := New()
+
+	// Add the testDir to the watchlist.
+	if err := w.Add(testDir); err != nil {
+		t.Error(err)
+	}
+
+	go func() {
+		// Start the watching process.
+		if err := w.Start(100); err != nil {
+			t.Error(err)
+		}
+	}()
+
+	go func() {
+		select {
+		case event := <-w.Event:
+			if event != EventFileAdded {
+				t.Error("expected event EventFileAdded, got %s", event)
+			}
+		case <-time.After(time.Millisecond * 200):
+			t.Error("received no event from Event channel")
+		}
+	}()
+
+	newFileName := filepath.Join(testDir, "newfile.txt")
+	err := ioutil.WriteFile(newFileName, []byte("Hello, World!"), os.ModePerm)
+	if err != nil {
+		t.Error(err)
+	}
+	if err := os.Remove(newFileName); err != nil {
+		t.Error(err)
 	}
 }
