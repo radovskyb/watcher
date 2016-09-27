@@ -127,25 +127,23 @@ func (w *Watcher) Start() error {
 		return ErrNothingAdded
 	}
 
-	var err error
-	var fInfoList []os.FileInfo
 	for {
+		var fInfoList []os.FileInfo
 		for _, name := range w.Names {
 			// Retrieve the list of os.FileInfo's from w.Name.
-			fInfoList, err = ListFiles(name)
+			list, err := ListFiles(name)
 			if err != nil {
 				w.Error <- err
 			}
+			fInfoList = append(fInfoList, list...)
 		}
 
-		// Check for new files.
 		if len(fInfoList) > len(w.Files) {
+			// Check for new files.
 			w.Event <- EventFileAdded
 			w.Files = fInfoList
-		}
-
-		// Check for deleted files.
-		if len(fInfoList) < len(w.Files) {
+		} else if len(fInfoList) < len(w.Files) {
+			// Check for deleted files.
 			w.Event <- EventFileDeleted
 			w.Files = fInfoList
 		}
