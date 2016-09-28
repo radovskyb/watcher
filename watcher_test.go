@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const testDir = "examples/test_folder"
+const testDir = "example/test_folder"
 
 func TestWatcherAdd(t *testing.T) {
 	w := New()
