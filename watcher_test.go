@@ -92,6 +92,23 @@ func TestTriggerEvent(t *testing.T) {
 		t.Error(err)
 	}
 
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		select {
+		case event := <-w.Event:
+			if event.Name() != "triggered event" {
+				t.Errorf("expected event file name to be triggered event, got %s",
+					event.Name())
+			}
+			wg.Done()
+		case <-time.After(time.Millisecond * 250):
+			t.Error("received no event from Event channel")
+			wg.Done()
+		}
+	}()
+
 	go func() {
 		// Start the watching process.
 		if err := w.Start(100); err != nil {
@@ -99,26 +116,7 @@ func TestTriggerEvent(t *testing.T) {
 		}
 	}()
 
-	// Sleep for 50 milliseconds and then trigger an event.
-	go func() {
-		time.Sleep(time.Millisecond * 50)
-		w.TriggerEvent(EventFileAdded, nil)
-	}()
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-
-	select {
-	case event := <-w.Event:
-		if event.Name() != "triggered event" {
-			t.Errorf("expected event file name to be triggered event, got %s",
-				event.Name())
-		}
-		wg.Done()
-	case <-time.After(time.Millisecond * 250):
-		t.Error("received no event from Event channel")
-		wg.Done()
-	}
+	w.TriggerEvent(EventFileAdded, nil)
 
 	wg.Wait()
 }
@@ -131,49 +129,48 @@ func TestEventAddFile(t *testing.T) {
 		t.Error(err)
 	}
 
+	newFileName := filepath.Join(testDir, "newfile.txt")
+	err := ioutil.WriteFile(newFileName, []byte("Hello, World!"), os.ModePerm)
+	if err != nil {
+		t.Error(err)
+	}
+	if err := os.Remove(newFileName); err != nil {
+		t.Error(err)
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		select {
+		case event := <-w.Event:
+			// TODO: Make event's accurate where if a modified event is a file,
+			// don't return the file's folder first as a modified folder.
+			//
+			// Will be modified event because the folder will be checked first.
+			if event.EventType != EventFileModified {
+				t.Errorf("expected event to be EventFileModified, got %s",
+					event.EventType)
+			}
+			// For the same reason as above, the modified file won't be newfile.txt,
+			// but rather test_folder.
+			if event.Name() != "test_folder" {
+				t.Errorf("expected event file name to be test_folder, got %s",
+					event.Name())
+			}
+			wg.Done()
+		case <-time.After(time.Millisecond * 250):
+			t.Error("received no event from Event channel")
+			wg.Done()
+		}
+	}()
+
 	go func() {
 		// Start the watching process.
 		if err := w.Start(100); err != nil {
 			t.Error(err)
 		}
 	}()
-
-	go func() {
-		time.Sleep(time.Millisecond * 10)
-		newFileName := filepath.Join(testDir, "newfile.txt")
-		err := ioutil.WriteFile(newFileName, []byte("Hello, World!"), os.ModePerm)
-		if err != nil {
-			t.Error(err)
-		}
-		if err := os.Remove(newFileName); err != nil {
-			t.Error(err)
-		}
-	}()
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-
-	select {
-	case event := <-w.Event:
-		// TODO: Make event's accurate where if a modified event is a file,
-		// don't return the file's folder first as a modified folder.
-		//
-		// Will be modified event because the folder will be checked first.
-		if event.EventType != EventFileModified {
-			t.Errorf("expected event to be EventFileModified, got %s",
-				event.EventType)
-		}
-		// For the same reason as above, the modified file won't be newfile.txt,
-		// but rather test_folder.
-		if event.Name() != "test_folder" {
-			t.Errorf("expected event file name to be test_folder, got %s",
-				event.Name())
-		}
-		wg.Done()
-	case <-time.After(time.Millisecond * 250):
-		t.Error("received no event from Event channel")
-		wg.Done()
-	}
 
 	wg.Wait()
 }
@@ -200,14 +197,6 @@ func TestEventDeleteFile(t *testing.T) {
 	}
 
 	go func() {
-		// Start the watching process.
-		if err := w.Start(100); err != nil {
-			t.Error(err)
-		}
-	}()
-
-	go func() {
-		time.Sleep(time.Millisecond * 10)
 		if err := os.Remove(fileName); err != nil {
 			t.Error(err)
 		}
@@ -216,13 +205,22 @@ func TestEventDeleteFile(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 
-	select {
-	case <-w.Event:
-		wg.Done()
-	case <-time.After(time.Millisecond * 250):
-		t.Error("received no event from Event channel")
-		wg.Done()
-	}
+	go func() {
+		select {
+		case <-w.Event:
+			wg.Done()
+		case <-time.After(time.Millisecond * 250):
+			t.Error("received no event from Event channel")
+			wg.Done()
+		}
+	}()
+
+	go func() {
+		// Start the watching process.
+		if err := w.Start(0); err != nil {
+			t.Error(err)
+		}
+	}()
 
 	wg.Wait()
 }
