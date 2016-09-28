@@ -9,9 +9,44 @@ import (
 	"time"
 )
 
-const testDir = "example/test_folder"
+// setup creates all required files and folders for
+// the tests and returns a function that is used as
+// a teardown function when the tests are done.
+func setup(t *testing.T) (string, func()) {
+	testDir, err := ioutil.TempDir(".", "")
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = ioutil.WriteFile(filepath.Join(testDir, "file.txt"),
+		[]byte{}, 0755)
+	if err != nil {
+		t.Error(err)
+	}
+
+	testDirTwo := filepath.Join(testDir, "testDirTwo")
+	err = os.Mkdir(testDirTwo, 0755)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = ioutil.WriteFile(filepath.Join(testDirTwo, "file_recursive.txt"),
+		[]byte{}, 0755)
+	if err != nil {
+		t.Error(err)
+	}
+
+	return testDir, func() {
+		if os.RemoveAll(testDir); err != nil {
+			t.Error(err)
+		}
+	}
+}
 
 func TestWatcherAdd(t *testing.T) {
+	testDir, teardown := setup(t)
+	defer teardown()
+
 	w := New()
 
 	if err := w.Add(testDir); err != nil {
@@ -42,6 +77,9 @@ func TestWatcherAddNotFound(t *testing.T) {
 }
 
 func TestWatcherRemove(t *testing.T) {
+	testDir, teardown := setup(t)
+	defer teardown()
+
 	w := New()
 
 	// Add the testDir to the watchlist.
@@ -72,19 +110,26 @@ func TestWatcherRemove(t *testing.T) {
 }
 
 func TestListFiles(t *testing.T) {
+	testDir, teardown := setup(t)
+	defer teardown()
+
 	fileList, err := ListFiles(testDir)
 	if err != nil {
 		t.Error(err)
 	}
 
 	// Make sure fInfoTest contains the correct os.FileInfo names.
-	if fileList["test_folder/file.txt"].Name() != "file.txt" {
-		t.Errorf("expected fileList[\"file.txt\"].Name() to be file.txt, got %s",
-			fileList["test_folder/file.txt"].Name())
+	fname := filepath.Join(testDir, "file.txt")
+	if fileList[fname].Name() != "file.txt" {
+		t.Errorf("expected fileList[%s].Name() to be file.txt, got %s",
+			fname, fileList[fname].Name())
 	}
 }
 
 func TestTriggerEvent(t *testing.T) {
+	testDir, teardown := setup(t)
+	defer teardown()
+
 	w := New()
 
 	// Add the testDir to the watchlist.
@@ -122,19 +167,13 @@ func TestTriggerEvent(t *testing.T) {
 }
 
 func TestEventAddFile(t *testing.T) {
+	testDir, teardown := setup(t)
+	defer teardown()
+
 	w := New()
 
 	// Add the testDir to the watchlist.
 	if err := w.Add(testDir); err != nil {
-		t.Error(err)
-	}
-
-	newFileName := filepath.Join(testDir, "newfile.txt")
-	err := ioutil.WriteFile(newFileName, []byte("Hello, World!"), os.ModePerm)
-	if err != nil {
-		t.Error(err)
-	}
-	if err := os.Remove(newFileName); err != nil {
 		t.Error(err)
 	}
 
@@ -144,18 +183,12 @@ func TestEventAddFile(t *testing.T) {
 	go func() {
 		select {
 		case event := <-w.Event:
-			// TODO: Make event's accurate where if a modified event is a file,
-			// don't return the file's folder first as a modified folder.
-			//
-			// Will be modified event because the folder will be checked first.
-			if event.EventType != EventFileModified {
-				t.Errorf("expected event to be EventFileModified, got %s",
+			if event.EventType != EventFileAdded {
+				t.Errorf("expected event to be EventFileAdded, got %s",
 					event.EventType)
 			}
-			// For the same reason as above, the modified file won't be newfile.txt,
-			// but rather test_folder.
-			if event.Name() != "test_folder" {
-				t.Errorf("expected event file name to be test_folder, got %s",
+			if event.Name() != "newfile.txt" {
+				t.Errorf("expected event file name to be newfile.txt, got %s",
 					event.Name())
 			}
 			wg.Done()
@@ -172,37 +205,23 @@ func TestEventAddFile(t *testing.T) {
 		}
 	}()
 
+	newFileName := filepath.Join(testDir, "newfile.txt")
+	err := ioutil.WriteFile(newFileName, []byte{}, 0755)
+	if err != nil {
+		t.Error(err)
+	}
+
 	wg.Wait()
 }
 
 func TestEventDeleteFile(t *testing.T) {
-	// Create a new directory for testing deleting files so there
-	// are no conflicts with other tests.
-	testDirTwo := "test_folder_two"
-
-	if err := os.Mkdir(testDirTwo, 0755); err != nil {
-		if !os.IsExist(err) {
-			t.Error(err)
-		}
-	}
-
-	fileName := filepath.Join(testDirTwo, "file.txt")
-	f, err := os.Create(fileName)
-	if err != nil {
-		t.Error(err)
-	}
-	if err := f.Close(); err != nil {
-		t.Error(err)
-	}
+	testDir, teardown := setup(t)
+	defer teardown()
 
 	w := New()
 
 	// Add the testDir to the watchlist.
-	if err := w.Add(testDirTwo); err != nil {
-		t.Error(err)
-	}
-
-	if err := os.Remove(fileName); err != nil {
+	if err := w.Add(testDir); err != nil {
 		t.Error(err)
 	}
 
@@ -225,6 +244,10 @@ func TestEventDeleteFile(t *testing.T) {
 			t.Error(err)
 		}
 	}()
+
+	if err := os.Remove(filepath.Join(testDir, "file.txt")); err != nil {
+		t.Error(err)
+	}
 
 	wg.Wait()
 }
