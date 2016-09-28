@@ -22,7 +22,7 @@ func main() {
 				// Print the event type.
 				fmt.Println(event)
 
-				// Print out the modified file with a message
+				// Print out the file name with a message
 				// based on the event type.
 				switch event.EventType {
 				case watcher.EventFileModified:
