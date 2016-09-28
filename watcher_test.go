@@ -102,7 +102,7 @@ func TestTriggerEvent(t *testing.T) {
 	// Sleep for 50 milliseconds and then trigger an event.
 	go func() {
 		time.Sleep(time.Millisecond * 50)
-		w.Trigger(EventFileAdded, nil)
+		w.TriggerEvent(EventFileAdded, nil)
 	}()
 
 	var wg sync.WaitGroup

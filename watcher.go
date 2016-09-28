@@ -72,7 +72,7 @@ func New() *Watcher {
 
 // fileInfo is an implementation of os.FileInfo that can be used
 // as a mocked os.FileInfo when triggering an event when the specified
-// File is nil.
+// os.FileInfo is nil.
 type fileInfo struct {
 	name    string
 	size    int64
@@ -100,9 +100,9 @@ func (fs *fileInfo) Sys() interface{} {
 	return fs.sys
 }
 
-// Trigger is a method that can be used to trigger an event, separate to
+// TriggerEvent is a method that can be used to trigger an event, separate to
 // the file watching process.
-func (w *Watcher) Trigger(eventType EventType, file os.FileInfo) {
+func (w *Watcher) TriggerEvent(eventType EventType, file os.FileInfo) {
 	if file == nil {
 		file = &fileInfo{name: "triggered event", modTime: time.Now()}
 	}
@@ -213,6 +213,7 @@ func (w *Watcher) Start(pollInterval int) error {
 
 		if len(fileList) > len(w.Files) {
 			// TODO: Return all new files?
+			//
 			// Check for new files.
 			var addedFile os.FileInfo
 			w.mu.Lock()
@@ -244,10 +245,7 @@ func (w *Watcher) Start(pollInterval int) error {
 		w.mu.Lock()
 		for i, file := range w.Files {
 			if fileList[i].ModTime() != file.ModTime() {
-				w.Event <- Event{
-					EventType: EventFileModified,
-					FileInfo:  file,
-				}
+				w.Event <- Event{EventType: EventFileModified, FileInfo: file}
 				w.Files = fileList
 				break
 			}
@@ -261,9 +259,9 @@ func (w *Watcher) Start(pollInterval int) error {
 	return nil
 }
 
-// ListFiles returns a slice of all os.FileInfo's recursively
+// ListFiles returns a map of all os.FileInfo's recursively
 // contained in a directory. If name is a single file, it returns
-// an os.FileInfo slice with a single os.FileInfo.
+// an os.FileInfo map containing a single os.FileInfo.
 func ListFiles(name string) (map[string]os.FileInfo, error) {
 	var currentDir string
 
