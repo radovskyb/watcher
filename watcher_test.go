@@ -111,7 +111,7 @@ func TestTriggerEvent(t *testing.T) {
 
 	go func() {
 		// Start the watching process.
-		if err := w.Start(100); err != nil {
+		if err := w.Start(time.Millisecond * 100); err != nil {
 			t.Error(err)
 		}
 	}()
@@ -167,7 +167,7 @@ func TestEventAddFile(t *testing.T) {
 
 	go func() {
 		// Start the watching process.
-		if err := w.Start(100); err != nil {
+		if err := w.Start(time.Millisecond * 100); err != nil {
 			t.Error(err)
 		}
 	}()
@@ -176,31 +176,35 @@ func TestEventAddFile(t *testing.T) {
 }
 
 func TestEventDeleteFile(t *testing.T) {
-	fileName := filepath.Join(testDir, "file.txt")
+	// Create a new directory for testing deleting files so there
+	// are no conflicts with other tests.
+	testDirTwo := "test_folder_two"
 
-	// Put the file back when the test is finished.
-	defer func() {
-		f, err := os.Create(fileName)
-		if err != nil {
+	if err := os.Mkdir(testDirTwo, 0755); err != nil {
+		if !os.IsExist(err) {
 			t.Error(err)
 		}
-		if err := f.Close(); err != nil {
-			t.Error(err)
-		}
-	}()
+	}
+
+	fileName := filepath.Join(testDirTwo, "file.txt")
+	f, err := os.Create(fileName)
+	if err != nil {
+		t.Error(err)
+	}
+	if err := f.Close(); err != nil {
+		t.Error(err)
+	}
 
 	w := New()
 
 	// Add the testDir to the watchlist.
-	if err := w.Add(testDir); err != nil {
+	if err := w.Add(testDirTwo); err != nil {
 		t.Error(err)
 	}
 
-	go func() {
-		if err := os.Remove(fileName); err != nil {
-			t.Error(err)
-		}
-	}()
+	if err := os.Remove(fileName); err != nil {
+		t.Error(err)
+	}
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -217,7 +221,7 @@ func TestEventDeleteFile(t *testing.T) {
 
 	go func() {
 		// Start the watching process.
-		if err := w.Start(0); err != nil {
+		if err := w.Start(time.Millisecond * 100); err != nil {
 			t.Error(err)
 		}
 	}()
