@@ -103,11 +103,11 @@ func (fs *fileInfo) Sys() interface{} {
 
 // Trigger is a method that can be used to trigger an event, separate to
 // the file watching process.
-func (w *Watcher) Trigger(event EventType, file os.FileInfo) {
+func (w *Watcher) Trigger(eventType EventType, file os.FileInfo) {
 	if file == nil {
 		file = &fileInfo{name: "triggered event", modTime: time.Now()}
 	}
-	w.Event <- Event{event, File{FileInfo: file}}
+	w.Event <- Event{eventType, File{FileInfo: file}}
 }
 
 // Add adds either a single file or recursed directory to
