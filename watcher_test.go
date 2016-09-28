@@ -103,6 +103,45 @@ func TestListFiles(t *testing.T) {
 	}
 }
 
+func TestTriggerEvent(t *testing.T) {
+	w := New()
+
+	// Add the testDir to the watchlist.
+	if err := w.Add(testDir); err != nil {
+		t.Error(err)
+	}
+
+	go func() {
+		// Start the watching process.
+		if err := w.Start(100); err != nil {
+			t.Error(err)
+		}
+	}()
+
+	// Sleep for 50 milliseconds and then trigger an event.
+	go func() {
+		time.Sleep(time.Millisecond * 50)
+		w.Trigger(EventFileAdded, nil)
+	}()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	select {
+	case event := <-w.Event:
+		if event.Name() != "triggered event" {
+			t.Errorf("expected event file name to be triggered event, got %s",
+				event.Name())
+		}
+		wg.Done()
+	case <-time.After(time.Millisecond * 250):
+		t.Error("received no event from Event channel")
+		wg.Done()
+	}
+
+	wg.Wait()
+}
+
 func TestEventAddFile(t *testing.T) {
 	w := New()
 
