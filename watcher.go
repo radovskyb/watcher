@@ -170,12 +170,27 @@ func (w *Watcher) Start(pollInterval int) error {
 		}
 
 		if len(fileList) > len(w.Files) {
+			// TODO: Return all new files?
 			// Check for new files.
-			w.Event <- Event{EventType: EventFileAdded}
+			var addedFile File
+			for _, file := range fileList {
+				if !fileInList(w.Files, file) {
+					addedFile = file
+				}
+			}
+			w.Event <- Event{EventType: EventFileAdded, File: addedFile}
 			w.Files = fileList
 		} else if len(fileList) < len(w.Files) {
+			// TODO: Return all deleted files?
+			//
 			// Check for deleted files.
-			w.Event <- Event{EventType: EventFileDeleted}
+			var deletedFile File
+			for _, file := range w.Files {
+				if !fileInList(fileList, file) {
+					deletedFile = file
+				}
+			}
+			w.Event <- Event{EventType: EventFileDeleted, File: deletedFile}
 			w.Files = fileList
 		}
 
@@ -222,4 +237,14 @@ func ListFiles(name string) ([]File, error) {
 	}
 
 	return fileList, nil
+}
+
+// fileInList checks whether or not a File exists in a []File.
+func fileInList(fileList []File, file File) bool {
+	for _, f := range fileList {
+		if f.Dir == file.Dir && f.Name() == file.Name() {
+			return true
+		}
+	}
+	return false
 }

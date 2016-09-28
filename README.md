@@ -34,20 +34,26 @@ import (
 func main() {
 	w := watcher.New()
 
-	var wg sync.WaitGroup	
+	var wg sync.WaitGroup
 	wg.Add(1)
-	
+
 	go func() {
 		defer wg.Done()
 		for {
 			select {
 			case event := <-w.Event:
+				// Print the event type.
 				fmt.Println(event)
-				// Print the event file's name.
-				//
-				// (currently only works for modified files)
-				if event.EventType == watcher.EventFileModified {
-					fmt.Println(event.Name())
+
+				// Print out the modified file with a message
+				// based on the event type.
+				switch event.EventType {
+				case watcher.EventFileModified:
+					fmt.Println("Modified file:", event.Name())
+				case watcher.EventFileAdded:
+					fmt.Println("Added file:", event.Name())
+				case watcher.EventFileDeleted:
+					fmt.Println("Deleted file:", event.Name())
 				}
 			case err := <-w.Error:
 				log.Fatalln(err)
