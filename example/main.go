@@ -58,7 +58,7 @@ func main() {
 	// Trigger an event after 500 milliseconds.
 	go func() {
 		time.Sleep(time.Millisecond * 500)
-		w.Trigger(watcher.EventFileAdded, nil)
+		w.TriggerEvent(watcher.EventFileAdded, nil)
 	}()
 
 	// Start the watching process - it'll check for changes every 100ms.
