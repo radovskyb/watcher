@@ -71,6 +71,45 @@ func New() *Watcher {
 	}
 }
 
+// fileInfo is an implementation of os.FileInfo that can be used
+// as a mocked os.FileInfo when triggering an event when the specified
+// File is nil.
+type fileInfo struct {
+	name    string
+	size    int64
+	mode    os.FileMode
+	modTime time.Time
+	sys     interface{}
+}
+
+func (fs *fileInfo) IsDir() bool {
+	return false
+}
+func (fs *fileInfo) ModTime() time.Time {
+	return fs.modTime
+}
+func (fs *fileInfo) Mode() os.FileMode {
+	return fs.mode
+}
+func (fs *fileInfo) Name() string {
+	return fs.name
+}
+func (fs *fileInfo) Size() int64 {
+	return fs.size
+}
+func (fs *fileInfo) Sys() interface{} {
+	return fs.sys
+}
+
+// Trigger is a method that can be used to trigger an event, separate to
+// the file watching process.
+func (w *Watcher) Trigger(event EventType, file os.FileInfo) {
+	if file == nil {
+		file = &fileInfo{name: "triggered event", modTime: time.Now()}
+	}
+	w.Event <- Event{event, File{FileInfo: file}}
+}
+
 // Add adds either a single file or recursed directory to
 // the Watcher's file list.
 func (w *Watcher) Add(name string) error {

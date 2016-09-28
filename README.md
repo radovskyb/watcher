@@ -77,6 +77,12 @@ func main() {
 		fmt.Println(f.Name())
 	}
 
+	// Trigger an event after 500 milliseconds.
+	go func() {
+		time.Sleep(time.Millisecond * 500)
+		w.Trigger(watcher.EventFileAdded, nil)
+	}()
+
 	// Start the watcher - it'll check for changes every 100ms.
 	if err := w.Start(100); err != nil {
 		log.Fatalln(err)
