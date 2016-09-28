@@ -15,8 +15,9 @@ go get -u github.com/radovskyb/watcher
 
 # Todo:
 
-1. Write tests.
-2. Notify name of file from event.
+1. Write tests. -- in progress
+2. Notify name of file from event. -- done
+3. Trigger events. -- done.
 
 # Example:
 
