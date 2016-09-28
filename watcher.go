@@ -54,6 +54,7 @@ type Watcher struct {
 	Event chan Event
 	Error chan error
 
+	// mu protects Files.
 	mu    *sync.Mutex
 	Files map[string]os.FileInfo
 }
@@ -122,7 +123,9 @@ func (w *Watcher) Add(name string) error {
 
 	// If watching a single file, add it and return.
 	if !fInfo.IsDir() {
+		w.mu.Lock()
 		w.Files[fInfo.Name()] = fInfo
+		w.mu.Unlock()
 		return nil
 	}
 
@@ -131,9 +134,11 @@ func (w *Watcher) Add(name string) error {
 	if err != nil {
 		return err
 	}
+	w.mu.Lock()
 	for k, v := range fInfoList {
 		w.Files[k] = v
 	}
+	w.mu.Unlock()
 	return nil
 }
 
@@ -199,20 +204,24 @@ func (w *Watcher) Start(pollInterval int) error {
 					w.Error <- err
 				}
 			}
+			w.mu.Lock()
 			for k, v := range list {
 				fileList[k] = v
 			}
+			w.mu.Unlock()
 		}
 
 		if len(fileList) > len(w.Files) {
 			// TODO: Return all new files?
 			// Check for new files.
 			var addedFile os.FileInfo
+			w.mu.Lock()
 			for path, fInfo := range fileList {
 				if _, found := w.Files[path]; !found {
 					addedFile = fInfo
 				}
 			}
+			w.mu.Unlock()
 			w.Event <- Event{EventType: EventFileAdded, FileInfo: addedFile}
 			w.Files = fileList
 		} else if len(fileList) < len(w.Files) {
@@ -220,16 +229,19 @@ func (w *Watcher) Start(pollInterval int) error {
 			//
 			// Check for deleted files.
 			var deletedFile os.FileInfo
+			w.mu.Lock()
 			for path, fInfo := range w.Files {
 				if _, found := fileList[path]; !found {
 					deletedFile = fInfo
 				}
 			}
+			w.mu.Unlock()
 			w.Event <- Event{EventType: EventFileDeleted, FileInfo: deletedFile}
 			w.Files = fileList
 		}
 
 		// Check for modified files.
+		w.mu.Lock()
 		for i, file := range w.Files {
 			if fileList[i].ModTime() != file.ModTime() {
 				w.Event <- Event{
@@ -240,6 +252,7 @@ func (w *Watcher) Start(pollInterval int) error {
 				break
 			}
 		}
+		w.mu.Unlock()
 
 		// Sleep for a little bit.
 		time.Sleep(time.Millisecond * time.Duration(pollInterval))
@@ -266,6 +279,7 @@ func ListFiles(name string) (map[string]os.FileInfo, error) {
 		}
 
 		fileList[filepath.Join(currentDir, info.Name())] = info
+
 		return nil
 	}); err != nil {
 		return nil, err
