@@ -7,7 +7,7 @@
 
 With `watcher`, when adding a folder to the watchlist, the folder will be watched recursively.
 
-#Installation
+#Installation:
 
 ```shell
 go get -u github.com/radovskyb/watcher
