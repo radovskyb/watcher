@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 )
 
@@ -44,28 +45,25 @@ func (e EventType) String() string {
 
 type Event struct {
 	EventType
-	File
+	os.FileInfo
 }
 
 // A Watcher describes a file watcher.
 type Watcher struct {
 	Names []string
-	Files []File
 	Event chan Event
 	Error chan error
-}
 
-// A Watcher describes a file/folder being watched.
-type File struct {
-	Dir string
-	os.FileInfo
+	mu    *sync.Mutex
+	Files map[string]os.FileInfo
 }
 
 // New returns a new initialized *Watcher.
 func New() *Watcher {
 	return &Watcher{
 		Names: []string{},
-		Files: []File{},
+		mu:    new(sync.Mutex),
+		Files: make(map[string]os.FileInfo),
 		Event: make(chan Event),
 		Error: make(chan error),
 	}
@@ -107,7 +105,7 @@ func (w *Watcher) Trigger(eventType EventType, file os.FileInfo) {
 	if file == nil {
 		file = &fileInfo{name: "triggered event", modTime: time.Now()}
 	}
-	w.Event <- Event{eventType, File{FileInfo: file}}
+	w.Event <- Event{eventType, file}
 }
 
 // Add adds either a single file or recursed directory to
@@ -124,7 +122,7 @@ func (w *Watcher) Add(name string) error {
 
 	// If watching a single file, add it and return.
 	if !fInfo.IsDir() {
-		w.Files = append(w.Files, File{Dir: filepath.Dir(fInfo.Name()), FileInfo: fInfo})
+		w.Files[fInfo.Name()] = fInfo
 		return nil
 	}
 
@@ -133,7 +131,9 @@ func (w *Watcher) Add(name string) error {
 	if err != nil {
 		return err
 	}
-	w.Files = append(w.Files, fInfoList...)
+	for k, v := range fInfoList {
+		w.Files[k] = v
+	}
 	return nil
 }
 
@@ -155,12 +155,9 @@ func (w *Watcher) Remove(name string) error {
 
 	// If name is a single file, remove it and return.
 	if !fInfo.IsDir() {
-		for i := range w.Files {
-			if w.Files[i].FileInfo == fInfo &&
-				w.Files[i].Dir == filepath.Dir(fInfo.Name()) {
-				w.Files = append(w.Files[:i], w.Files[i+1:]...)
-			}
-		}
+		w.mu.Lock()
+		delete(w.Files, fInfo.Name())
+		w.mu.Unlock()
 		return nil
 	}
 
@@ -171,14 +168,11 @@ func (w *Watcher) Remove(name string) error {
 	}
 
 	// Remove the appropriate os.FileInfo's from w's os.FileInfo list.
-	for _, file := range fileList {
-		for i, wFile := range w.Files {
-			if wFile.Dir == file.Dir &&
-				wFile.Name() == file.Name() {
-				w.Files = append(w.Files[:i], w.Files[i+1:]...)
-			}
-		}
+	w.mu.Lock()
+	for path := range fileList {
+		delete(w.Files, path)
 	}
+	w.mu.Unlock()
 	return nil
 }
 
@@ -194,7 +188,7 @@ func (w *Watcher) Start(pollInterval int) error {
 	}
 
 	for {
-		var fileList []File
+		fileList := make(map[string]os.FileInfo)
 		for _, name := range w.Names {
 			// Retrieve the list of os.FileInfo's from w.Name.
 			list, err := ListFiles(name)
@@ -205,31 +199,33 @@ func (w *Watcher) Start(pollInterval int) error {
 					w.Error <- err
 				}
 			}
-			fileList = append(fileList, list...)
+			for k, v := range list {
+				fileList[k] = v
+			}
 		}
 
 		if len(fileList) > len(w.Files) {
 			// TODO: Return all new files?
 			// Check for new files.
-			var addedFile File
-			for _, file := range fileList {
-				if !fileInList(w.Files, file) {
-					addedFile = file
+			var addedFile os.FileInfo
+			for path, fInfo := range fileList {
+				if _, found := w.Files[path]; !found {
+					addedFile = fInfo
 				}
 			}
-			w.Event <- Event{EventType: EventFileAdded, File: addedFile}
+			w.Event <- Event{EventType: EventFileAdded, FileInfo: addedFile}
 			w.Files = fileList
 		} else if len(fileList) < len(w.Files) {
 			// TODO: Return all deleted files?
 			//
 			// Check for deleted files.
-			var deletedFile File
-			for _, file := range w.Files {
-				if !fileInList(fileList, file) {
-					deletedFile = file
+			var deletedFile os.FileInfo
+			for path, fInfo := range w.Files {
+				if _, found := fileList[path]; !found {
+					deletedFile = fInfo
 				}
 			}
-			w.Event <- Event{EventType: EventFileDeleted, File: deletedFile}
+			w.Event <- Event{EventType: EventFileDeleted, FileInfo: deletedFile}
 			w.Files = fileList
 		}
 
@@ -238,7 +234,7 @@ func (w *Watcher) Start(pollInterval int) error {
 			if fileList[i].ModTime() != file.ModTime() {
 				w.Event <- Event{
 					EventType: EventFileModified,
-					File:      file,
+					FileInfo:  file,
 				}
 				w.Files = fileList
 				break
@@ -255,10 +251,10 @@ func (w *Watcher) Start(pollInterval int) error {
 // ListFiles returns a slice of all os.FileInfo's recursively
 // contained in a directory. If name is a single file, it returns
 // an os.FileInfo slice with a single os.FileInfo.
-func ListFiles(name string) ([]File, error) {
+func ListFiles(name string) (map[string]os.FileInfo, error) {
 	var currentDir string
 
-	fileList := []File{}
+	fileList := make(map[string]os.FileInfo)
 
 	if err := filepath.Walk(name, func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() {
@@ -269,21 +265,11 @@ func ListFiles(name string) ([]File, error) {
 			return err
 		}
 
-		fileList = append(fileList, File{Dir: currentDir, FileInfo: info})
+		fileList[filepath.Join(currentDir, info.Name())] = info
 		return nil
 	}); err != nil {
 		return nil, err
 	}
 
 	return fileList, nil
-}
-
-// fileInList checks whether or not a File exists in a []File.
-func fileInList(fileList []File, file File) bool {
-	for _, f := range fileList {
-		if f.Dir == file.Dir && f.Name() == file.Name() {
-			return true
-		}
-	}
-	return false
 }
