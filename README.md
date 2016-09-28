@@ -84,7 +84,7 @@ func main() {
 		w.Trigger(watcher.EventFileAdded, nil)
 	}()
 
-	// Start the watcher - it'll check for changes every 100ms.
+	// Start the watching process - it'll check for changes every 100ms.
 	if err := w.Start(100); err != nil {
 		log.Fatalln(err)
 	}
