@@ -53,8 +53,7 @@ func TestWatcherAdd(t *testing.T) {
 		t.Error(err)
 	}
 
-	// Make sure w.Files is the right amount, including
-	// file and folders.
+	// Make sure len(w.Files) is 4.
 	if len(w.Files) != 4 {
 		t.Errorf("expected 4 files, found %d", len(w.Files))
 	}
@@ -87,8 +86,7 @@ func TestWatcherRemove(t *testing.T) {
 		t.Error(err)
 	}
 
-	// Make sure w.Files is the right amount, including
-	// file and folders.
+	// Make sure len(w.Files) is 4.
 	if len(w.Files) != 4 {
 		t.Errorf("expected 4 files, found %d", len(w.Files))
 	}
