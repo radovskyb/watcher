@@ -50,9 +50,8 @@ type Event struct {
 
 // A Watcher describes a file watcher.
 type Watcher struct {
-	Event   chan Event
-	Trigger chan Event
-	Error   chan error
+	Event chan Event
+	Error chan error
 
 	// mu protects Files and Names.
 	mu    *sync.Mutex
@@ -63,12 +62,11 @@ type Watcher struct {
 // New returns a new initialized *Watcher.
 func New() *Watcher {
 	return &Watcher{
-		Event:   make(chan Event),
-		Trigger: make(chan Event),
-		Error:   make(chan error),
-		mu:      new(sync.Mutex),
-		Files:   make(map[string]os.FileInfo),
-		Names:   []string{},
+		Event: make(chan Event),
+		Error: make(chan error),
+		mu:    new(sync.Mutex),
+		Files: make(map[string]os.FileInfo),
+		Names: []string{},
 	}
 }
 
@@ -108,7 +106,7 @@ func (w *Watcher) TriggerEvent(eventType EventType, file os.FileInfo) {
 	if file == nil {
 		file = &fileInfo{name: "triggered event", modTime: time.Now()}
 	}
-	w.Trigger <- Event{eventType, file}
+	w.Event <- Event{eventType, file}
 }
 
 // Add adds either a single file or recursed directory to
@@ -201,15 +199,6 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 	w.mu.Unlock()
 
 	for {
-		w.mu.Lock()
-		select {
-		case event := <-w.Trigger:
-			w.Event <- event
-			continue
-		default:
-		}
-		w.mu.Unlock()
-
 		fileList := make(map[string]os.FileInfo)
 		w.mu.Lock()
 		for _, name := range w.Names {
