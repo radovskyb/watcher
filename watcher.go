@@ -253,7 +253,7 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 		w.mu.Unlock()
 
 		// Sleep for a little bit.
-		time.Sleep(time.Millisecond * time.Duration(pollInterval))
+		time.Sleep(pollInterval)
 	}
 
 	return nil
