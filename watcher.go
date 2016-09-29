@@ -50,23 +50,25 @@ type Event struct {
 
 // A Watcher describes a file watcher.
 type Watcher struct {
-	Names []string
-	Event chan Event
-	Error chan error
+	Event   chan Event
+	Trigger chan Event
+	Error   chan error
 
-	// mu protects Files.
+	// mu protects Files and Names.
 	mu    *sync.Mutex
 	Files map[string]os.FileInfo
+	Names []string
 }
 
 // New returns a new initialized *Watcher.
 func New() *Watcher {
 	return &Watcher{
-		Names: []string{},
-		mu:    new(sync.Mutex),
-		Files: make(map[string]os.FileInfo),
-		Event: make(chan Event),
-		Error: make(chan error),
+		Event:   make(chan Event),
+		Trigger: make(chan Event),
+		Error:   make(chan error),
+		mu:      new(sync.Mutex),
+		Files:   make(map[string]os.FileInfo),
+		Names:   []string{},
 	}
 }
 
@@ -106,14 +108,16 @@ func (w *Watcher) TriggerEvent(eventType EventType, file os.FileInfo) {
 	if file == nil {
 		file = &fileInfo{name: "triggered event", modTime: time.Now()}
 	}
-	w.Event <- Event{eventType, file}
+	w.Trigger <- Event{eventType, file}
 }
 
 // Add adds either a single file or recursed directory to
 // the Watcher's file list.
 func (w *Watcher) Add(name string) error {
 	// Add the name from w's Names list.
+	w.mu.Lock()
 	w.Names = append(w.Names, name)
+	w.mu.Unlock()
 
 	// Make sure name exists.
 	fInfo, err := os.Stat(name)
@@ -146,11 +150,13 @@ func (w *Watcher) Add(name string) error {
 // the Watcher's file list.
 func (w *Watcher) Remove(name string) error {
 	// Remove the name from w's Names list.
+	w.mu.Lock()
 	for i := range w.Names {
 		if w.Names[i] == name {
 			w.Names = append(w.Names[:i], w.Names[i+1:]...)
 		}
 	}
+	w.mu.Unlock()
 
 	// Make sure name exists.
 	fInfo, err := os.Stat(name)
@@ -188,12 +194,24 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 		pollInterval = time.Millisecond * 100
 	}
 
+	w.mu.Lock()
 	if len(w.Names) < 1 {
 		return ErrNothingAdded
 	}
+	w.mu.Unlock()
 
 	for {
+		w.mu.Lock()
+		select {
+		case event := <-w.Trigger:
+			w.Event <- event
+			continue
+		default:
+		}
+		w.mu.Unlock()
+
 		fileList := make(map[string]os.FileInfo)
+		w.mu.Lock()
 		for _, name := range w.Names {
 			// Retrieve the list of os.FileInfo's from w.Name.
 			list, err := ListFiles(name)
@@ -204,42 +222,41 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 					w.Error <- err
 				}
 			}
-			w.mu.Lock()
 			for k, v := range list {
 				fileList[k] = v
 			}
-			w.mu.Unlock()
 		}
+		w.mu.Unlock()
 
+		w.mu.Lock()
 		if len(fileList) > len(w.Files) {
 			// TODO: Return all new files?
 			//
 			// Check for new files.
 			var addedFile os.FileInfo
-			w.mu.Lock()
 			for path, fInfo := range fileList {
 				if _, found := w.Files[path]; !found {
 					addedFile = fInfo
 				}
 			}
-			w.mu.Unlock()
 			w.Event <- Event{EventType: EventFileAdded, FileInfo: addedFile}
 			w.Files = fileList
+			continue
 		} else if len(fileList) < len(w.Files) {
 			// TODO: Return all deleted files?
 			//
 			// Check for deleted files.
 			var deletedFile os.FileInfo
-			w.mu.Lock()
 			for path, fInfo := range w.Files {
 				if _, found := fileList[path]; !found {
 					deletedFile = fInfo
 				}
 			}
-			w.mu.Unlock()
 			w.Event <- Event{EventType: EventFileDeleted, FileInfo: deletedFile}
 			w.Files = fileList
+			continue
 		}
+		w.mu.Unlock()
 
 		// Check for modified files.
 		w.mu.Lock()
@@ -247,7 +264,7 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 			if fileList[i].ModTime() != file.ModTime() {
 				w.Event <- Event{EventType: EventFileModified, FileInfo: file}
 				w.Files = fileList
-				break
+				continue
 			}
 		}
 		w.mu.Unlock()
@@ -276,7 +293,11 @@ func ListFiles(name string) (map[string]os.FileInfo, error) {
 			return err
 		}
 
-		fileList[filepath.Join(currentDir, info.Name())] = info
+		if info.IsDir() {
+			fileList[currentDir] = info
+		} else {
+			fileList[filepath.Join(currentDir, info.Name())] = info
+		}
 
 		return nil
 	}); err != nil {

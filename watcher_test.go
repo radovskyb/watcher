@@ -63,6 +63,24 @@ func TestWatcherAdd(t *testing.T) {
 		t.Errorf("expected w.Names[0] to be %s, got %s",
 			testDir, w.Names[0])
 	}
+
+	if _, found := w.Files["testDirTwo"]; !found {
+		t.Error("expected to find testDirTwo directory")
+	}
+
+	if w.Files["testDirTwo"].Name() != "testDirTwo" {
+		t.Errorf("expected w.Files[%q].Name() to be testDirTwo, got %s",
+			"testDirTwo", w.Files["testDirTwo"].Name())
+	}
+
+	if _, found := w.Files["testDirTwo/file_recursive.txt"]; !found {
+		t.Error("expected to find testDirTwo/file_recursive.txt directory")
+	}
+
+	if w.Files["testDirTwo/file_recursive.txt"].Name() != "file_recursive.txt" {
+		t.Errorf("expected w.Files[%q].Name() to be file_recursive.txt, got %s",
+			"testDirTwo/file_recursive.txt", w.Files["testDirTwo/file_recursive.txt"].Name())
+	}
 }
 
 func TestWatcherAddNotFound(t *testing.T) {
@@ -175,6 +193,12 @@ func TestEventAddFile(t *testing.T) {
 		t.Error(err)
 	}
 
+	newFileName := filepath.Join(testDir, "newfile.txt")
+	err := ioutil.WriteFile(newFileName, []byte{}, 0755)
+	if err != nil {
+		t.Error(err)
+	}
+
 	var wg sync.WaitGroup
 	wg.Add(1)
 
@@ -202,12 +226,6 @@ func TestEventAddFile(t *testing.T) {
 			t.Error(err)
 		}
 	}()
-
-	newFileName := filepath.Join(testDir, "newfile.txt")
-	err := ioutil.WriteFile(newFileName, []byte{}, 0755)
-	if err != nil {
-		t.Error(err)
-	}
 
 	wg.Wait()
 }
