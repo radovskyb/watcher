@@ -239,6 +239,8 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 			w.Files = fileList
 		}
 
+		// TODO: Return all modified files?
+		//
 		// Check for modified files.
 		for i, file := range w.Files {
 			if fileList[i].ModTime() != file.ModTime() {
