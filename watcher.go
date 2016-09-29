@@ -249,11 +249,12 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 
 		// Check for modified files.
 		w.mu.Lock()
+		// TODO: Return all modified files?
 		for i, file := range w.Files {
 			if fileList[i].ModTime() != file.ModTime() {
 				w.Event <- Event{EventType: EventFileModified, FileInfo: file}
 				w.Files = fileList
-				continue
+				break
 			}
 		}
 		w.mu.Unlock()
