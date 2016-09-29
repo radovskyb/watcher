@@ -208,11 +208,9 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 					w.Error <- err
 				}
 			}
-			w.mu.Lock()
 			for k, v := range list {
 				fileList[k] = v
 			}
-			w.mu.Unlock()
 		}
 
 		if len(fileList) > len(w.Files) {
@@ -220,13 +218,11 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 			//
 			// Check for new files.
 			var addedFile os.FileInfo
-			w.mu.Lock()
 			for path, fInfo := range fileList {
 				if _, found := w.Files[path]; !found {
 					addedFile = fInfo
 				}
 			}
-			w.mu.Unlock()
 			w.Event <- Event{EventType: EventFileAdded, FileInfo: addedFile}
 			w.Files = fileList
 		} else if len(fileList) < len(w.Files) {
@@ -234,19 +230,16 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 			//
 			// Check for deleted files.
 			var deletedFile os.FileInfo
-			w.mu.Lock()
 			for path, fInfo := range w.Files {
 				if _, found := fileList[path]; !found {
 					deletedFile = fInfo
 				}
 			}
-			w.mu.Unlock()
 			w.Event <- Event{EventType: EventFileDeleted, FileInfo: deletedFile}
 			w.Files = fileList
 		}
 
 		// Check for modified files.
-		w.mu.Lock()
 		for i, file := range w.Files {
 			if fileList[i].ModTime() != file.ModTime() {
 				w.Event <- Event{EventType: EventFileModified, FileInfo: file}
@@ -254,7 +247,6 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 				break
 			}
 		}
-		w.mu.Unlock()
 
 		// Sleep for a little bit.
 		time.Sleep(pollInterval)
