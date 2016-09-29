@@ -192,15 +192,12 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 		pollInterval = time.Millisecond * 100
 	}
 
-	w.mu.Lock()
 	if len(w.Names) < 1 {
 		return ErrNothingAdded
 	}
-	w.mu.Unlock()
 
 	for {
 		fileList := make(map[string]os.FileInfo)
-		w.mu.Lock()
 		for _, name := range w.Names {
 			// Retrieve the list of os.FileInfo's from w.Name.
 			list, err := ListFiles(name)
@@ -211,45 +208,45 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 					w.Error <- err
 				}
 			}
+			w.mu.Lock()
 			for k, v := range list {
 				fileList[k] = v
 			}
+			w.mu.Unlock()
 		}
-		w.mu.Unlock()
 
-		w.mu.Lock()
 		if len(fileList) > len(w.Files) {
 			// TODO: Return all new files?
 			//
 			// Check for new files.
 			var addedFile os.FileInfo
+			w.mu.Lock()
 			for path, fInfo := range fileList {
 				if _, found := w.Files[path]; !found {
 					addedFile = fInfo
 				}
 			}
+			w.mu.Unlock()
 			w.Event <- Event{EventType: EventFileAdded, FileInfo: addedFile}
 			w.Files = fileList
-			continue
 		} else if len(fileList) < len(w.Files) {
 			// TODO: Return all deleted files?
 			//
 			// Check for deleted files.
 			var deletedFile os.FileInfo
+			w.mu.Lock()
 			for path, fInfo := range w.Files {
 				if _, found := fileList[path]; !found {
 					deletedFile = fInfo
 				}
 			}
+			w.mu.Unlock()
 			w.Event <- Event{EventType: EventFileDeleted, FileInfo: deletedFile}
 			w.Files = fileList
-			continue
 		}
-		w.mu.Unlock()
 
 		// Check for modified files.
 		w.mu.Lock()
-		// TODO: Return all modified files?
 		for i, file := range w.Files {
 			if fileList[i].ModTime() != file.ModTime() {
 				w.Event <- Event{EventType: EventFileModified, FileInfo: file}
