@@ -100,15 +100,6 @@ func (fs *fileInfo) Sys() interface{} {
 	return fs.sys
 }
 
-// TriggerEvent is a method that can be used to trigger an event, separate to
-// the file watching process.
-func (w *Watcher) TriggerEvent(eventType EventType, file os.FileInfo) {
-	if file == nil {
-		file = &fileInfo{name: "triggered event", modTime: time.Now()}
-	}
-	w.Event <- Event{eventType, file}
-}
-
 // Add adds either a single file or recursed directory to
 // the Watcher's file list.
 func (w *Watcher) Add(name string) error {
@@ -183,6 +174,15 @@ func (w *Watcher) Remove(name string) error {
 	}
 	w.mu.Unlock()
 	return nil
+}
+
+// TriggerEvent is a method that can be used to trigger an event, separate to
+// the file watching process.
+func (w *Watcher) TriggerEvent(eventType EventType, file os.FileInfo) {
+	if file == nil {
+		file = &fileInfo{name: "triggered event", modTime: time.Now()}
+	}
+	w.Event <- Event{eventType, file}
 }
 
 // Start starts the watching process and checks for changes every `pollInterval`
