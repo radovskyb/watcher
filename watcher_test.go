@@ -143,13 +143,10 @@ func TestListFiles(t *testing.T) {
 }
 
 func TestTriggerEvent(t *testing.T) {
-	testDir, teardown := setup(t)
-	defer teardown()
-
 	w := New()
 
 	// Add the testDir to the watchlist.
-	if err := w.Add(testDir); err != nil {
+	if err := w.Add("example/test_folder"); err != nil {
 		t.Error(err)
 	}
 
