@@ -146,7 +146,7 @@ func TestTriggerEvent(t *testing.T) {
 	w := New()
 
 	// Add the testDir to the watchlist.
-	if err := w.Add("example/test_folder"); err != nil {
+	if err := w.Add("watcher_test.go"); err != nil {
 		t.Error(err)
 	}
 
