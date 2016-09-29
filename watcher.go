@@ -264,12 +264,12 @@ func ListFiles(name string) (map[string]os.FileInfo, error) {
 	fileList := make(map[string]os.FileInfo)
 
 	if err := filepath.Walk(name, func(path string, info os.FileInfo, err error) error {
-		if info.IsDir() {
-			currentDir = info.Name()
-		}
-
 		if err != nil {
 			return err
+		}
+
+		if info.IsDir() {
+			currentDir = info.Name()
 		}
 
 		if info.IsDir() {

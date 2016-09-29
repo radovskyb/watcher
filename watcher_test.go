@@ -238,6 +238,10 @@ func TestEventDeleteFile(t *testing.T) {
 		t.Error(err)
 	}
 
+	if err := os.Remove(filepath.Join(testDir, "file.txt")); err != nil {
+		t.Error(err)
+	}
+
 	var wg sync.WaitGroup
 	wg.Add(1)
 
@@ -257,10 +261,6 @@ func TestEventDeleteFile(t *testing.T) {
 			t.Error(err)
 		}
 	}()
-
-	if err := os.Remove(filepath.Join(testDir, "file.txt")); err != nil {
-		t.Error(err)
-	}
 
 	wg.Wait()
 }
