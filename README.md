@@ -78,10 +78,11 @@ func main() {
 		fmt.Println(f.Name())
 	}
 
-	// Trigger an event after 500 milliseconds.
+	// Trigger 2 events after 100 milliseconds.
 	go func() {
-		time.Sleep(time.Millisecond * 500)
+		time.Sleep(time.Millisecond * 100)
 		w.TriggerEvent(watcher.EventFileAdded, nil)
+		w.TriggerEvent(watcher.EventFileDeleted, nil)
 	}()
 
 	// Start the watching process - it'll check for changes every 100ms.
