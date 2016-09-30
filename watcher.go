@@ -272,9 +272,6 @@ func ListFiles(name string) (map[string]os.FileInfo, error) {
 
 		if info.IsDir() {
 			currentDir = info.Name()
-		}
-
-		if info.IsDir() {
 			fileList[currentDir] = info
 		} else {
 			fileList[filepath.Join(currentDir, info.Name())] = info
