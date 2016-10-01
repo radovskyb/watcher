@@ -16,7 +16,6 @@ go get -u github.com/radovskyb/watcher
 # Todo:
 
 1. Write tests. -- in progress
-1. Find out what is causing race conditions in test.
 2. Notify name of file from event. -- done
 3. Trigger events. -- done.
 
