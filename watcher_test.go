@@ -88,7 +88,7 @@ func TestSetNonRecursive(t *testing.T) {
 			dotFile, w.Files[dotFile].Name())
 	}
 
-	fileRecursive := filepath.Join("testDirTwo", "file_recursive.txt")
+	fileRecursive := filepath.Join(testDir, "testDirTwo", "file_recursive.txt")
 	if _, found := w.Files[fileRecursive]; found {
 		t.Errorf("expected to not find %s", fileRecursive)
 	}
@@ -143,12 +143,12 @@ func TestSetIgnoreDotFiles(t *testing.T) {
 			testDir, testDir, w.Files[testDir].Name())
 	}
 
-	fileRecursive := filepath.Join("testDirTwo", "file_recursive.txt")
+	fileRecursive := filepath.Join(testDir, "testDirTwo", "file_recursive.txt")
 	if _, found := w.Files[fileRecursive]; !found {
 		t.Errorf("expected to find %s", fileRecursive)
 	}
 
-	if _, found := w.Files[".dotfile"]; found {
+	if _, found := w.Files[filepath.Join(testDir, ".dotfile")]; found {
 		t.Error("expected to not find .dotfile")
 	}
 
@@ -202,11 +202,11 @@ func TestSetIgnoreDotFilesAndNonRecursive(t *testing.T) {
 			testDir, testDir, w.Files[testDir].Name())
 	}
 
-	if _, found := w.Files[".dotfile"]; found {
+	if _, found := w.Files[filepath.Join(testDir, ".dotfile")]; found {
 		t.Error("expected to not find .dotfile")
 	}
 
-	fileRecursive := filepath.Join("testDirTwo", "file_recursive.txt")
+	fileRecursive := filepath.Join(testDir, "testDirTwo", "file_recursive.txt")
 	if _, found := w.Files[fileRecursive]; found {
 		t.Errorf("expected to not find %s", fileRecursive)
 	}
@@ -263,13 +263,14 @@ func TestWatcherAdd(t *testing.T) {
 			"testDirTwo", w.Files[dirTwo].Name())
 	}
 
-	if _, found := w.Files["testDirTwo/file_recursive.txt"]; !found {
-		t.Error("expected to find testDirTwo/file_recursive.txt directory")
+	fileRecursive := filepath.Join(dirTwo, "file_recursive.txt")
+	if _, found := w.Files[fileRecursive]; !found {
+		t.Errorf("expected to find %s directory", fileRecursive)
 	}
 
-	if w.Files["testDirTwo/file_recursive.txt"].Name() != "file_recursive.txt" {
+	if w.Files[fileRecursive].Name() != "file_recursive.txt" {
 		t.Errorf("expected w.Files[%q].Name() to be file_recursive.txt, got %s",
-			"testDirTwo/file_recursive.txt", w.Files["testDirTwo/file_recursive.txt"].Name())
+			fileRecursive, w.Files[fileRecursive].Name())
 	}
 }
 

@@ -17,8 +17,8 @@ go get -u github.com/radovskyb/watcher
 
 1. Write tests. -- in progress
 2. Notify name of file from event. -- done
-3. Trigger events. -- done.
-4. Create more unique path structures so there are no path collisions in deeply nested folders.
+3. Trigger events. -- done
+4. Unique path structures -- done
 
 # Example:
 

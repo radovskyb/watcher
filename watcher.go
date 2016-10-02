@@ -281,13 +281,6 @@ func hasOption(option Option, options []Option) bool {
 	return false
 }
 
-// TODO: Make sure directories and files that are multiple layers deep still have
-//		 a unique path structure in the fileList map if they start with the same
-//		 path names and folders.
-//
-//		 Simple fix, add full directory path structure string and append before
-//		 info.Name() instead of just currentDir.
-//
 // ListFiles returns a map of all os.FileInfo's recursively
 // contained in a directory. If name is a single file, it returns
 // an os.FileInfo map containing a single os.FileInfo.
@@ -344,7 +337,7 @@ func ListFiles(name string, options ...Option) (map[string]os.FileInfo, error) {
 
 		if info.IsDir() {
 			fileList[filepath.Join(currentDir, info.Name())] = info
-			currentDir = info.Name()
+			currentDir = filepath.Join(currentDir, info.Name())
 		} else {
 			fileList[filepath.Join(currentDir, info.Name())] = info
 		}
