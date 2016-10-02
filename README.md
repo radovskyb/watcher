@@ -19,6 +19,7 @@ go get -u github.com/radovskyb/watcher
 2. Notify name of file from event. -- done
 3. Trigger events. -- done
 4. Unique path structures -- done
+5. Change options for on individual files/folders add method instead of at initialization?
 
 # Example:
 
