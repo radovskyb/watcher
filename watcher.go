@@ -65,11 +65,12 @@ type Watcher struct {
 	Event chan Event
 	Error chan error
 
-	// mu protects Files, Names and options.
-	mu      *sync.Mutex
-	Files   map[string]os.FileInfo
-	Names   []string
 	options []Option
+
+	// mu protects Files and Names.
+	mu    *sync.Mutex
+	Files map[string]os.FileInfo
+	Names []string
 }
 
 // New returns a new initialized *Watcher.
@@ -77,10 +78,10 @@ func New(options ...Option) *Watcher {
 	return &Watcher{
 		Event:   make(chan Event),
 		Error:   make(chan error),
+		options: options,
 		mu:      new(sync.Mutex),
 		Files:   make(map[string]os.FileInfo),
 		Names:   []string{},
-		options: options,
 	}
 }
 
@@ -302,7 +303,7 @@ func ListFiles(name string, options ...Option) (map[string]os.FileInfo, error) {
 			return nil, err
 		}
 		// Add the name to fileList.
-		if !info.IsDir() && ignoreDotFiles && strings.HasPrefix(name, ".") {
+		if ignoreDotFiles && strings.HasPrefix(name, ".") {
 			return fileList, nil
 		}
 		fileList[name] = info
