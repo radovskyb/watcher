@@ -88,6 +88,11 @@ func TestSetNonRecursive(t *testing.T) {
 			dotFile, w.Files[dotFile].Name())
 	}
 
+	fileRecursive := filepath.Join("testDirTwo", "file_recursive.txt")
+	if _, found := w.Files[fileRecursive]; found {
+		t.Errorf("expected to not find %s", fileRecursive)
+	}
+
 	fileTxt := filepath.Join(testDir, "file.txt")
 	if _, found := w.Files[fileTxt]; !found {
 		t.Errorf("expected to find %s", fileTxt)
@@ -119,8 +124,67 @@ func TestSetIgnoreDotFiles(t *testing.T) {
 		t.Error(err)
 	}
 
-	if len(w.Files) != 5 {
-		t.Errorf("expected len(w.Files) to be 5, got %d", len(w.Files))
+	if len(w.Files) != 4 {
+		t.Errorf("expected len(w.Files) to be 4, got %d", len(w.Files))
+	}
+
+	// Make sure w.Names[0] is now equal to testDir.
+	if w.Names[0] != testDir {
+		t.Errorf("expected w.Names[0] to be %s, got %s",
+			testDir, w.Names[0])
+	}
+
+	if _, found := w.Files[testDir]; !found {
+		t.Errorf("expected to find %s", testDir)
+	}
+
+	if w.Files[testDir].Name() != testDir {
+		t.Errorf("expected w.Files[%q].Name() to be %s, got %s",
+			testDir, testDir, w.Files[testDir].Name())
+	}
+
+	fileRecursive := filepath.Join("testDirTwo", "file_recursive.txt")
+	if _, found := w.Files[fileRecursive]; !found {
+		t.Errorf("expected to find %s", fileRecursive)
+	}
+
+	if _, found := w.Files[".dotfile"]; found {
+		t.Error("expected to not find .dotfile")
+	}
+
+	fileTxt := filepath.Join(testDir, "file.txt")
+	if _, found := w.Files[fileTxt]; !found {
+		t.Errorf("expected to find %s", fileTxt)
+	}
+
+	if w.Files[fileTxt].Name() != "file.txt" {
+		t.Errorf("expected w.Files[%q].Name() to be file.txt, got %s",
+			fileTxt, w.Files[fileTxt].Name())
+	}
+
+	dirTwo := filepath.Join(testDir, "testDirTwo")
+	if _, found := w.Files[dirTwo]; !found {
+		t.Errorf("expected to find %s directory", dirTwo)
+	}
+
+	if w.Files[dirTwo].Name() != "testDirTwo" {
+		t.Errorf("expected w.Files[%q].Name() to be testDirTwo, got %s",
+			dirTwo, w.Files[dirTwo].Name())
+	}
+}
+
+func TestSetIgnoreDotFilesAndNonRecursive(t *testing.T) {
+	testDir, teardown := setup(t)
+	defer teardown()
+
+	w := New(IgnoreDotFiles, NonRecursive)
+
+	if err := w.Add(testDir); err != nil {
+		t.Error(err)
+	}
+
+	if len(w.Files) != 3 {
+		t.Errorf("expected len(w.Files) to be 3, got %d", len(w.Files))
 	}
 
 	// Make sure w.Names[0] is now equal to testDir.
@@ -140,6 +204,11 @@ func TestSetIgnoreDotFiles(t *testing.T) {
 
 	if _, found := w.Files[".dotfile"]; found {
 		t.Error("expected to not find .dotfile")
+	}
+
+	fileRecursive := filepath.Join("testDirTwo", "file_recursive.txt")
+	if _, found := w.Files[fileRecursive]; found {
+		t.Errorf("expected to not find %s", fileRecursive)
 	}
 
 	fileTxt := filepath.Join(testDir, "file.txt")

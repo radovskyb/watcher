@@ -214,7 +214,7 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 		fileList := make(map[string]os.FileInfo)
 		for _, name := range w.Names {
 			// Retrieve the list of os.FileInfo's from w.Name.
-			list, err := ListFiles(name)
+			list, err := ListFiles(name, w.options...)
 			if err != nil {
 				if os.IsNotExist(err) {
 					w.Error <- ErrWatchedFileDeleted
@@ -286,6 +286,8 @@ func hasOption(option Option, options []Option) bool {
 func ListFiles(name string, options ...Option) (map[string]os.FileInfo, error) {
 	fileList := make(map[string]os.FileInfo)
 
+	name = filepath.Clean(name)
+
 	nonRecursive := hasOption(NonRecursive, options)
 	ignoreDotFiles := hasOption(IgnoreDotFiles, options)
 
@@ -300,7 +302,7 @@ func ListFiles(name string, options ...Option) (map[string]os.FileInfo, error) {
 			return nil, err
 		}
 		// Add the name to fileList.
-		if ignoreDotFiles && strings.HasPrefix(name, ".") {
+		if !info.IsDir() && ignoreDotFiles && strings.HasPrefix(name, ".") {
 			return fileList, nil
 		}
 		fileList[name] = info
@@ -328,7 +330,7 @@ func ListFiles(name string, options ...Option) (map[string]os.FileInfo, error) {
 			return err
 		}
 
-		if ignoreDotFiles && strings.HasPrefix(path, ".") {
+		if ignoreDotFiles && strings.HasPrefix(info.Name(), ".") {
 			return nil
 		}
 

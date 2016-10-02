@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	w := watcher.New()
+	w := watcher.New(watcher.NonRecursive)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -44,8 +44,10 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	// Watch test_folder recursively for changes.
-	if err := w.Add("test_folder"); err != nil {
+	// Watch test_folder non-recursively for changes.
+	//
+	// Watcher won't add the file test_folder_recursive/file_recursive.txt
+	if err := w.Add("../test_folder"); err != nil {
 		log.Fatalln(err)
 	}
 
@@ -55,9 +57,9 @@ func main() {
 		fmt.Println(f.Name())
 	}
 
-	// Trigger 2 events after 100 milliseconds.
+	// Trigger 2 events after 500 milliseconds.
 	go func() {
-		time.Sleep(time.Millisecond * 100)
+		time.Sleep(time.Millisecond * 500)
 		w.TriggerEvent(watcher.EventFileAdded, nil)
 		w.TriggerEvent(watcher.EventFileDeleted, nil)
 	}()
