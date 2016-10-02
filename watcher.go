@@ -303,7 +303,7 @@ func ListFiles(name string, options ...Option) (map[string]os.FileInfo, error) {
 			return nil, err
 		}
 		// Add the name to fileList.
-		if ignoreDotFiles && strings.HasPrefix(name, ".") {
+		if !info.IsDir() && ignoreDotFiles && strings.HasPrefix(name, ".") {
 			return fileList, nil
 		}
 		fileList[name] = info

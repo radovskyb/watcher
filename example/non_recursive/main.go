@@ -53,16 +53,9 @@ func main() {
 
 	// Print a list of all of the files and folders currently
 	// being watched.
-	for _, f := range w.Files {
-		fmt.Println(f.Name())
+	for path, f := range w.Files {
+		fmt.Printf("%s: %s\n", path, f.Name())
 	}
-
-	// Trigger 2 events after 500 milliseconds.
-	go func() {
-		time.Sleep(time.Millisecond * 500)
-		w.TriggerEvent(watcher.EventFileAdded, nil)
-		w.TriggerEvent(watcher.EventFileDeleted, nil)
-	}()
 
 	// Start the watching process - it'll check for changes every 100ms.
 	if err := w.Start(time.Millisecond * 100); err != nil {
