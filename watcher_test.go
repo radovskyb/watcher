@@ -24,6 +24,15 @@ func setup(t *testing.T) (string, func()) {
 		t.Error(err)
 	}
 
+	files := []string{"file_1.txt", "file_2.txt", "file_3.txt"}
+
+	for _, f := range files {
+		filePath := filepath.Join(testDir, f)
+		if err := ioutil.WriteFile(filePath, []byte{}, 0755); err != nil {
+			t.Error(err)
+		}
+	}
+
 	err = ioutil.WriteFile(filepath.Join(testDir, ".dotfile"),
 		[]byte{}, 0755)
 	if err != nil {
@@ -59,8 +68,8 @@ func TestSetNonRecursive(t *testing.T) {
 		t.Error(err)
 	}
 
-	if len(w.Files) != 4 {
-		t.Errorf("expected len(w.Files) to be 4, got %d", len(w.Files))
+	if len(w.Files) != 7 {
+		t.Errorf("expected len(w.Files) to be 7, got %d", len(w.Files))
 	}
 
 	// Make sure w.Names[0] is now equal to testDir.
@@ -124,8 +133,8 @@ func TestSetIgnoreDotFiles(t *testing.T) {
 		t.Error(err)
 	}
 
-	if len(w.Files) != 4 {
-		t.Errorf("expected len(w.Files) to be 4, got %d", len(w.Files))
+	if len(w.Files) != 7 {
+		t.Errorf("expected len(w.Files) to be 7, got %d", len(w.Files))
 	}
 
 	// Make sure w.Names[0] is now equal to testDir.
@@ -183,8 +192,8 @@ func TestSetIgnoreDotFilesAndNonRecursive(t *testing.T) {
 		t.Error(err)
 	}
 
-	if len(w.Files) != 3 {
-		t.Errorf("expected len(w.Files) to be 3, got %d", len(w.Files))
+	if len(w.Files) != 6 {
+		t.Errorf("expected len(w.Files) to be 6, got %d", len(w.Files))
 	}
 
 	// Make sure w.Names[0] is now equal to testDir.
@@ -243,7 +252,7 @@ func TestWatcherAdd(t *testing.T) {
 	}
 
 	// Make sure len(w.Files) is 5.
-	if len(w.Files) != 5 {
+	if len(w.Files) != 8 {
 		t.Errorf("expected 5 files, found %d", len(w.Files))
 	}
 
@@ -296,7 +305,7 @@ func TestWatcherRemove(t *testing.T) {
 	}
 
 	// Make sure len(w.Files) is 5.
-	if len(w.Files) != 5 {
+	if len(w.Files) != 8 {
 		t.Errorf("expected 5 files, found %d", len(w.Files))
 	}
 
@@ -381,30 +390,46 @@ func TestEventAddFile(t *testing.T) {
 		t.Error(err)
 	}
 
-	newFileName := filepath.Join(testDir, "newfile.txt")
-	err := ioutil.WriteFile(newFileName, []byte{}, 0755)
-	if err != nil {
-		t.Error(err)
+	files := map[string]bool{
+		"newfile_1.txt": false,
+		"newfile_2.txt": false,
+		"newfile_3.txt": false,
+	}
+
+	for f := range files {
+		filePath := filepath.Join(testDir, f)
+		if err := ioutil.WriteFile(filePath, []byte{}, 0755); err != nil {
+			t.Error(err)
+		}
 	}
 
 	var wg sync.WaitGroup
 	wg.Add(1)
 
 	go func() {
-		select {
-		case event := <-w.Event:
-			if event.EventType != EventFileAdded {
-				t.Errorf("expected event to be EventFileAdded, got %s",
-					event.EventType)
+		events := 0
+		for {
+			select {
+			case event := <-w.Event:
+				if event.EventType != EventFileAdded {
+					t.Errorf("expected event to be EventFileAdded, got %s",
+						event.EventType)
+				}
+
+				files[event.Name()] = true
+				events++
+
+				if events == len(files) {
+					wg.Done()
+				}
+			case <-time.After(time.Millisecond * 250):
+				for f, e := range files {
+					if !e {
+						t.Errorf("received no event for file %s", f)
+					}
+				}
+				wg.Done()
 			}
-			if event.Name() != "newfile.txt" {
-				t.Errorf("expected event file name to be newfile.txt, got %s",
-					event.Name())
-			}
-			wg.Done()
-		case <-time.After(time.Millisecond * 250):
-			t.Error("received no event from Event channel")
-			wg.Done()
 		}
 	}()
 
@@ -429,20 +454,46 @@ func TestEventDeleteFile(t *testing.T) {
 		t.Error(err)
 	}
 
-	if err := os.Remove(filepath.Join(testDir, "file.txt")); err != nil {
-		t.Error(err)
+	files := map[string]bool{
+		"file_1.txt": false,
+		"file_2.txt": false,
+		"file_3.txt": false,
+	}
+
+	for f := range files {
+		filePath := filepath.Join(testDir, f)
+		if err := os.Remove(filePath); err != nil {
+			t.Error(err)
+		}
 	}
 
 	var wg sync.WaitGroup
 	wg.Add(1)
 
 	go func() {
-		select {
-		case <-w.Event:
-			wg.Done()
-		case <-time.After(time.Millisecond * 250):
-			t.Error("received no event from Event channel")
-			wg.Done()
+		events := 0
+		for {
+			select {
+			case event := <-w.Event:
+				if event.EventType != EventFileDeleted {
+					t.Errorf("expected event to be EventEventFileDeleted, got %s",
+						event.EventType)
+				}
+
+				files[event.Name()] = true
+				events++
+
+				if events == len(files) {
+					wg.Done()
+				}
+			case <-time.After(time.Millisecond * 250):
+				for f, e := range files {
+					if !e {
+						t.Errorf("received no event for file %s", f)
+					}
+				}
+				wg.Done()
+			}
 		}
 	}()
 
