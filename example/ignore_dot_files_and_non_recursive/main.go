@@ -10,7 +10,13 @@ import (
 )
 
 func main() {
-	w := watcher.New(watcher.NonRecursive)
+	// There are 2 ways to use both options at the same time.
+	//
+	// 1) By comma separating the 2 arguments.
+	w := watcher.New(watcher.NonRecursive, watcher.IgnoreDotFiles)
+
+	// 2) By ORing the 2 options together.
+	// w := watcher.New(watcher.NonRecursive | watcher.IgnoreDotFiles)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -46,7 +52,7 @@ func main() {
 
 	// Watch test_folder non-recursively for changes.
 	//
-	// Watcher won't add the file test_folder_recursive/file_recursive.txt.
+	// Watcher won't add the file test_folder_recursive/file_recursive.txt or the file .dotfile.
 	if err := w.Add("../test_folder"); err != nil {
 		log.Fatalln(err)
 	}
