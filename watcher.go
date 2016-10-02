@@ -229,41 +229,30 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 		}
 
 		if len(fileList) > len(w.Files) {
-			// TODO: Return all new files?
-			//
 			// Check for new files.
-			var addedFile os.FileInfo
 			for path, fInfo := range fileList {
 				if _, found := w.Files[path]; !found {
-					addedFile = fInfo
+					w.Event <- Event{EventType: EventFileAdded, FileInfo: fInfo}
 				}
 			}
-			w.Event <- Event{EventType: EventFileAdded, FileInfo: addedFile}
 			w.Files = fileList
 		} else if len(fileList) < len(w.Files) {
-			// TODO: Return all deleted files?
-			//
 			// Check for deleted files.
-			var deletedFile os.FileInfo
 			for path, fInfo := range w.Files {
 				if _, found := fileList[path]; !found {
-					deletedFile = fInfo
+					w.Event <- Event{EventType: EventFileDeleted, FileInfo: fInfo}
 				}
 			}
-			w.Event <- Event{EventType: EventFileDeleted, FileInfo: deletedFile}
 			w.Files = fileList
 		}
 
-		// TODO: Return all modified files?
-		//
 		// Check for modified files.
 		for i, file := range w.Files {
 			if fileList[i].ModTime() != file.ModTime() {
 				w.Event <- Event{EventType: EventFileModified, FileInfo: file}
-				w.Files = fileList
-				break
 			}
 		}
+		w.Files = fileList
 
 		// Sleep for a little bit.
 		time.Sleep(pollInterval)
