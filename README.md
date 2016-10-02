@@ -1,6 +1,6 @@
 # watcher
 
-[![Build Status](https://travis-ci.org//radovskyb/watcher.svg?branch=master)](https://travis-ci.org//radovskyb/watcher)
+[![Build Status](https://travis-ci.org/radovskyb/watcher.svg?branch=master)](https://travis-ci.org//radovskyb/watcher)
 
 `watcher` is a simple Go package for watching files or directory changes.
 
