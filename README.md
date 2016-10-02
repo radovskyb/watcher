@@ -1,4 +1,7 @@
 # watcher
+
+[![Build Status](https://travis-ci.org//radovskyb/watcher.svg?branch=master)](https://travis-ci.org//radovskyb/watcher)
+
 `watcher` is a simple Go package for watching files or directory changes.
 
 `watcher` watches for changes and notifies over channels either anytime an event or an error has occured.
