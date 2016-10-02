@@ -24,6 +24,12 @@ func setup(t *testing.T) (string, func()) {
 		t.Error(err)
 	}
 
+	err = ioutil.WriteFile(filepath.Join(testDir, ".dotfile"),
+		[]byte{}, 0755)
+	if err != nil {
+		t.Error(err)
+	}
+
 	testDirTwo := filepath.Join(testDir, "testDirTwo")
 	err = os.Mkdir(testDirTwo, 0755)
 	if err != nil {
@@ -43,6 +49,120 @@ func setup(t *testing.T) (string, func()) {
 	}
 }
 
+func TestSetNonRecursive(t *testing.T) {
+	testDir, teardown := setup(t)
+	defer teardown()
+
+	w := New(NonRecursive)
+
+	if err := w.Add(testDir); err != nil {
+		t.Error(err)
+	}
+
+	if len(w.Files) != 4 {
+		t.Errorf("expected len(w.Files) to be 4, got %d", len(w.Files))
+	}
+
+	// Make sure w.Names[0] is now equal to testDir.
+	if w.Names[0] != testDir {
+		t.Errorf("expected w.Names[0] to be %s, got %s",
+			testDir, w.Names[0])
+	}
+
+	if _, found := w.Files[testDir]; !found {
+		t.Errorf("expected to find %s", testDir)
+	}
+
+	if w.Files[testDir].Name() != testDir {
+		t.Errorf("expected w.Files[%q].Name() to be %s, got %s",
+			testDir, testDir, w.Files[testDir].Name())
+	}
+
+	dotFile := filepath.Join(testDir, ".dotfile")
+	if _, found := w.Files[dotFile]; !found {
+		t.Errorf("expected to find %s", dotFile)
+	}
+
+	if w.Files[dotFile].Name() != ".dotfile" {
+		t.Errorf("expected w.Files[%q].Name() to be .dotfile, got %s",
+			dotFile, w.Files[dotFile].Name())
+	}
+
+	fileTxt := filepath.Join(testDir, "file.txt")
+	if _, found := w.Files[fileTxt]; !found {
+		t.Errorf("expected to find %s", fileTxt)
+	}
+
+	if w.Files[fileTxt].Name() != "file.txt" {
+		t.Errorf("expected w.Files[%q].Name() to be file.txt, got %s",
+			fileTxt, w.Files[fileTxt].Name())
+	}
+
+	dirTwo := filepath.Join(testDir, "testDirTwo")
+	if _, found := w.Files[dirTwo]; !found {
+		t.Errorf("expected to find %s directory", dirTwo)
+	}
+
+	if w.Files[dirTwo].Name() != "testDirTwo" {
+		t.Errorf("expected w.Files[%q].Name() to be testDirTwo, got %s",
+			dirTwo, w.Files[dirTwo].Name())
+	}
+}
+
+func TestSetIgnoreDotFiles(t *testing.T) {
+	testDir, teardown := setup(t)
+	defer teardown()
+
+	w := New(IgnoreDotFiles)
+
+	if err := w.Add(testDir); err != nil {
+		t.Error(err)
+	}
+
+	if len(w.Files) != 5 {
+		t.Errorf("expected len(w.Files) to be 5, got %d", len(w.Files))
+	}
+
+	// Make sure w.Names[0] is now equal to testDir.
+	if w.Names[0] != testDir {
+		t.Errorf("expected w.Names[0] to be %s, got %s",
+			testDir, w.Names[0])
+	}
+
+	if _, found := w.Files[testDir]; !found {
+		t.Errorf("expected to find %s", testDir)
+	}
+
+	if w.Files[testDir].Name() != testDir {
+		t.Errorf("expected w.Files[%q].Name() to be %s, got %s",
+			testDir, testDir, w.Files[testDir].Name())
+	}
+
+	if _, found := w.Files[".dotfile"]; found {
+		t.Error("expected to not find .dotfile")
+	}
+
+	fileTxt := filepath.Join(testDir, "file.txt")
+	if _, found := w.Files[fileTxt]; !found {
+		t.Errorf("expected to find %s", fileTxt)
+	}
+
+	if w.Files[fileTxt].Name() != "file.txt" {
+		t.Errorf("expected w.Files[%q].Name() to be file.txt, got %s",
+			fileTxt, w.Files[fileTxt].Name())
+	}
+
+	dirTwo := filepath.Join(testDir, "testDirTwo")
+	if _, found := w.Files[dirTwo]; !found {
+		t.Errorf("expected to find %s directory", dirTwo)
+	}
+
+	if w.Files[dirTwo].Name() != "testDirTwo" {
+		t.Errorf("expected w.Files[%q].Name() to be testDirTwo, got %s",
+			dirTwo, w.Files[dirTwo].Name())
+	}
+}
+
 func TestWatcherAdd(t *testing.T) {
 	testDir, teardown := setup(t)
 	defer teardown()
@@ -53,9 +173,9 @@ func TestWatcherAdd(t *testing.T) {
 		t.Error(err)
 	}
 
-	// Make sure len(w.Files) is 4.
-	if len(w.Files) != 4 {
-		t.Errorf("expected 4 files, found %d", len(w.Files))
+	// Make sure len(w.Files) is 5.
+	if len(w.Files) != 5 {
+		t.Errorf("expected 5 files, found %d", len(w.Files))
 	}
 
 	// Make sure w.Names[0] is now equal to testDir.
@@ -64,13 +184,14 @@ func TestWatcherAdd(t *testing.T) {
 			testDir, w.Names[0])
 	}
 
-	if _, found := w.Files["testDirTwo"]; !found {
-		t.Error("expected to find testDirTwo directory")
+	dirTwo := filepath.Join(testDir, "testDirTwo")
+	if _, found := w.Files[dirTwo]; !found {
+		t.Errorf("expected to find %s directory", dirTwo)
 	}
 
-	if w.Files["testDirTwo"].Name() != "testDirTwo" {
+	if w.Files[dirTwo].Name() != "testDirTwo" {
 		t.Errorf("expected w.Files[%q].Name() to be testDirTwo, got %s",
-			"testDirTwo", w.Files["testDirTwo"].Name())
+			"testDirTwo", w.Files[dirTwo].Name())
 	}
 
 	if _, found := w.Files["testDirTwo/file_recursive.txt"]; !found {
@@ -104,9 +225,9 @@ func TestWatcherRemove(t *testing.T) {
 		t.Error(err)
 	}
 
-	// Make sure len(w.Files) is 4.
-	if len(w.Files) != 4 {
-		t.Errorf("expected 4 files, found %d", len(w.Files))
+	// Make sure len(w.Files) is 5.
+	if len(w.Files) != 5 {
+		t.Errorf("expected 5 files, found %d", len(w.Files))
 	}
 
 	// Now remove the folder from the watchlist.

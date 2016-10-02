@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -26,6 +27,17 @@ const (
 	EventFileAdded EventType = 1 << iota
 	EventFileDeleted
 	EventFileModified
+)
+
+// An Option is a type that is used to set options for a Watcher.
+type Option int
+
+const (
+	// NonRecursive sets the watcher to not watch directories recursively.
+	NonRecursive Option = 1 << iota
+
+	// IgnoreDotFiles sets the watcher to ignore dot files.
+	IgnoreDotFiles
 )
 
 // String returns a small string depending on what
@@ -53,20 +65,22 @@ type Watcher struct {
 	Event chan Event
 	Error chan error
 
-	// mu protects Files and Names.
-	mu    *sync.Mutex
-	Files map[string]os.FileInfo
-	Names []string
+	// mu protects Files, Names and options.
+	mu      *sync.Mutex
+	Files   map[string]os.FileInfo
+	Names   []string
+	options []Option
 }
 
 // New returns a new initialized *Watcher.
-func New() *Watcher {
+func New(options ...Option) *Watcher {
 	return &Watcher{
-		Event: make(chan Event),
-		Error: make(chan error),
-		mu:    new(sync.Mutex),
-		Files: make(map[string]os.FileInfo),
-		Names: []string{},
+		Event:   make(chan Event),
+		Error:   make(chan error),
+		mu:      new(sync.Mutex),
+		Files:   make(map[string]os.FileInfo),
+		Names:   []string{},
+		options: options,
 	}
 }
 
@@ -122,8 +136,8 @@ func (w *Watcher) Add(name string) error {
 		return nil
 	}
 
-	// Add all of the os.FileInfo's to w from dir recursively.
-	fInfoList, err := ListFiles(name)
+	// Retrieve a list of all of the os.FileInfo's to add to w.Files.
+	fInfoList, err := ListFiles(name, w.options...)
 	if err != nil {
 		return err
 	}
@@ -162,14 +176,14 @@ func (w *Watcher) Remove(name string) error {
 	}
 
 	// Retrieve a list of all of the os.FileInfo's to delete from w.Files.
-	fileList, err := ListFiles(name)
+	fInfoList, err := ListFiles(name, w.options...)
 	if err != nil {
 		return err
 	}
 
 	// Remove the appropriate os.FileInfo's from w's os.FileInfo list.
 	w.mu.Lock()
-	for path := range fileList {
+	for path := range fInfoList {
 		delete(w.Files, path)
 	}
 	w.mu.Unlock()
@@ -257,22 +271,70 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 	return nil
 }
 
+func hasOption(option Option, options []Option) bool {
+	for _, o := range options {
+		if option&o != 0 {
+			return true
+		}
+	}
+	return false
+}
+
 // ListFiles returns a map of all os.FileInfo's recursively
 // contained in a directory. If name is a single file, it returns
 // an os.FileInfo map containing a single os.FileInfo.
-func ListFiles(name string) (map[string]os.FileInfo, error) {
-	var currentDir string
-
+func ListFiles(name string, options ...Option) (map[string]os.FileInfo, error) {
 	fileList := make(map[string]os.FileInfo)
 
+	nonRecursive := hasOption(NonRecursive, options)
+	ignoreDotFiles := hasOption(IgnoreDotFiles, options)
+
+	if nonRecursive {
+		f, err := os.Open(name)
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
+		info, err := os.Stat(name)
+		if err != nil {
+			return nil, err
+		}
+		// Add the name to fileList.
+		if ignoreDotFiles && strings.HasPrefix(name, ".") {
+			return fileList, nil
+		}
+		fileList[name] = info
+		if !info.IsDir() {
+			return fileList, nil
+		}
+		// It's a directory, read it's contents.
+		fInfoList, err := f.Readdir(-1)
+		if err != nil {
+			return nil, err
+		}
+		// Add all of the FileInfo's returned from f.ReadDir to fileList.
+		for _, fInfo := range fInfoList {
+			if ignoreDotFiles && strings.HasPrefix(fInfo.Name(), ".") {
+				continue
+			}
+			fileList[filepath.Join(name, fInfo.Name())] = fInfo
+		}
+		return fileList, nil
+	}
+
+	var currentDir string
 	if err := filepath.Walk(name, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
+		if ignoreDotFiles && strings.HasPrefix(path, ".") {
+			return nil
+		}
+
 		if info.IsDir() {
+			fileList[filepath.Join(currentDir, info.Name())] = info
 			currentDir = info.Name()
-			fileList[currentDir] = info
 		} else {
 			fileList[filepath.Join(currentDir, info.Name())] = info
 		}
