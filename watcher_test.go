@@ -251,9 +251,9 @@ func TestWatcherAdd(t *testing.T) {
 		t.Error(err)
 	}
 
-	// Make sure len(w.Files) is 5.
+	// Make sure len(w.Files) is 8.
 	if len(w.Files) != 8 {
-		t.Errorf("expected 5 files, found %d", len(w.Files))
+		t.Errorf("expected 8 files, found %d", len(w.Files))
 	}
 
 	// Make sure w.Names[0] is now equal to testDir.
@@ -304,9 +304,9 @@ func TestWatcherRemove(t *testing.T) {
 		t.Error(err)
 	}
 
-	// Make sure len(w.Files) is 5.
+	// Make sure len(w.Files) is 8.
 	if len(w.Files) != 8 {
-		t.Errorf("expected 5 files, found %d", len(w.Files))
+		t.Errorf("expected 8 files, found %d", len(w.Files))
 	}
 
 	// Now remove the folder from the watchlist.
@@ -354,16 +354,16 @@ func TestTriggerEvent(t *testing.T) {
 	wg.Add(1)
 
 	go func() {
+		defer wg.Done()
+
 		select {
 		case event := <-w.Event:
 			if event.Name() != "triggered event" {
 				t.Errorf("expected event file name to be triggered event, got %s",
 					event.Name())
 			}
-			wg.Done()
 		case <-time.After(time.Millisecond * 250):
 			t.Error("received no event from Event channel")
-			wg.Done()
 		}
 	}()
 
@@ -407,6 +407,8 @@ func TestEventAddFile(t *testing.T) {
 	wg.Add(1)
 
 	go func() {
+		defer wg.Done()
+
 		events := 0
 		for {
 			select {
@@ -420,7 +422,7 @@ func TestEventAddFile(t *testing.T) {
 				events++
 
 				if events == len(files) {
-					wg.Done()
+					return
 				}
 			case <-time.After(time.Millisecond * 250):
 				for f, e := range files {
@@ -428,7 +430,6 @@ func TestEventAddFile(t *testing.T) {
 						t.Errorf("received no event for file %s", f)
 					}
 				}
-				wg.Done()
 			}
 		}
 	}()
@@ -471,6 +472,8 @@ func TestEventDeleteFile(t *testing.T) {
 	wg.Add(1)
 
 	go func() {
+		defer wg.Done()
+
 		events := 0
 		for {
 			select {
@@ -484,7 +487,7 @@ func TestEventDeleteFile(t *testing.T) {
 				events++
 
 				if events == len(files) {
-					wg.Done()
+					return
 				}
 			case <-time.After(time.Millisecond * 250):
 				for f, e := range files {
@@ -492,7 +495,6 @@ func TestEventDeleteFile(t *testing.T) {
 						t.Errorf("received no event for file %s", f)
 					}
 				}
-				wg.Done()
 			}
 		}
 	}()
