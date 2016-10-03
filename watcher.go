@@ -222,7 +222,6 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 		return ErrNothingAdded
 	}
 
-	// TODO: Limit max event number events per cycle based on setting.
 	for {
 		fileList := make(map[string]os.FileInfo)
 		for _, name := range w.Names {
