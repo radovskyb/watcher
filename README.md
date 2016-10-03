@@ -41,6 +41,12 @@ import (
 func main() {
 	w := watcher.New()
 
+	// SetMaxEvents to 1 to allow at most 1 Event to be received
+	// on the Event channel per watching cycle.
+	//
+	// If SetMaxEvents is not set, the default is to send all events.
+	w.SetMaxEvents(1)
+
 	var wg sync.WaitGroup
 	wg.Add(1)
 

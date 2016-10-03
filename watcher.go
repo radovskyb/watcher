@@ -67,6 +67,8 @@ type Watcher struct {
 
 	options []Option
 
+	maxEventsPerCycle int
+
 	// mu protects Files and Names.
 	mu    *sync.Mutex
 	Files map[string]os.FileInfo
@@ -83,6 +85,15 @@ func New(options ...Option) *Watcher {
 		Files:   make(map[string]os.FileInfo),
 		Names:   []string{},
 	}
+}
+
+// SetMaxEvents controls the maximum amount of events that are sent on
+// the Event channel per watching cycle. If max events is less than 1, there is
+// no limit, which is the default.
+func (w *Watcher) SetMaxEvents(amount int) {
+	w.mu.Lock()
+	w.maxEventsPerCycle = amount
+	w.mu.Unlock()
 }
 
 // fileInfo is an implementation of os.FileInfo that can be used
@@ -229,11 +240,16 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 			}
 		}
 
+		numEvents := 0
 		if len(fileList) > len(w.Files) {
 			// Check for new files.
 			for path, fInfo := range fileList {
 				if _, found := w.Files[path]; !found {
+					if w.maxEventsPerCycle > 0 && numEvents >= w.maxEventsPerCycle {
+						break
+					}
 					w.Event <- Event{EventType: EventFileAdded, FileInfo: fInfo}
+					numEvents++
 				}
 			}
 			w.Files = fileList
@@ -241,7 +257,11 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 			// Check for deleted files.
 			for path, fInfo := range w.Files {
 				if _, found := fileList[path]; !found {
+					if w.maxEventsPerCycle > 0 && numEvents >= w.maxEventsPerCycle {
+						break
+					}
 					w.Event <- Event{EventType: EventFileDeleted, FileInfo: fInfo}
+					numEvents++
 				}
 			}
 			w.Files = fileList
@@ -250,7 +270,11 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 		// Check for modified files.
 		for i, file := range w.Files {
 			if fileList[i].ModTime() != file.ModTime() {
+				if w.maxEventsPerCycle > 0 && numEvents >= w.maxEventsPerCycle {
+					break
+				}
 				w.Event <- Event{EventType: EventFileModified, FileInfo: file}
+				numEvents++
 			}
 		}
 		w.Files = fileList
