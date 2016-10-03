@@ -46,6 +46,7 @@ func main() {
 
 	go func() {
 		defer wg.Done()
+
 		for {
 			select {
 			case event := <-w.Event:
