@@ -10,13 +10,13 @@
 
 With `watcher`, when adding a folder to the watchlist, the folder will be watched recursively.
 
-#Installation:
+# Installation
 
 ```shell
 go get -u github.com/radovskyb/watcher
 ```
 
-# Todo:
+# Todo
 
 1. Write tests. -- in progress
 2. Notify name of file from event. -- done
@@ -25,7 +25,7 @@ go get -u github.com/radovskyb/watcher
 5. Change options for on individual files/folders add method instead of at initialization?
 6. Throttle event amount per cycle based on setting.
 
-# Example:
+# Example
 
 ```go
 package main
