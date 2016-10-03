@@ -21,8 +21,9 @@ go get -u github.com/radovskyb/watcher
 1. Write tests. -- in progress
 2. Notify name of file from event. -- done
 3. Trigger events. -- done
-4. Unique path structures -- done
+4. Unique path structures. -- done
 5. Change options for on individual files/folders add method instead of at initialization?
+6. Throttle event amount per cycle based on setting.
 
 # Example:
 
