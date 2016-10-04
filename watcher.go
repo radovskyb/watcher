@@ -2,6 +2,7 @@ package watcher
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -40,24 +41,31 @@ const (
 	IgnoreDotFiles
 )
 
-// String returns a small string depending on what
-// type of event it is.
-func (e EventType) String() string {
-	switch e {
-	case EventFileAdded:
-		return "FILE/FOLDER ADDED"
-	case EventFileDeleted:
-		return "FILE/FOLDER DELETED"
-	case EventFileModified:
-		return "FILE/FOLDER MODIFIED"
-	default:
-		return "UNRECOGNIZED EVENT"
-	}
-}
-
 type Event struct {
 	EventType
 	os.FileInfo
+}
+
+// String returns a string depending on what type of event occured and the
+// file name associated with the event.
+func (e Event) String() string {
+	var fileType string
+	if e.IsDir() {
+		fileType = "DIRECTORY"
+	} else {
+		fileType = "FILE"
+	}
+
+	switch e.EventType {
+	case EventFileAdded:
+		return fmt.Sprintf("%s %q ADDED", fileType, e.Name())
+	case EventFileDeleted:
+		return fmt.Sprintf("%s %q DELETED", fileType, e.Name())
+	case EventFileModified:
+		return fmt.Sprintf("%s %q MODIFIED", fileType, e.Name())
+	default:
+		return "UNRECOGNIZED EVENT"
+	}
 }
 
 // A Watcher describes a file watcher.
@@ -211,8 +219,8 @@ func (w *Watcher) TriggerEvent(eventType EventType, file os.FileInfo) {
 	w.Event <- Event{eventType, file}
 }
 
-// Start starts the watching process and checks for changes every `pollInterval`
-// amount of milliseconds. If pollInterval is 0, the default is 100ms.
+// Start starts the watching process and checks for changes every `pollInterval` duration.
+// If pollInterval is 0, the default is 100ms.
 func (w *Watcher) Start(pollInterval time.Duration) error {
 	if pollInterval <= 0 {
 		pollInterval = time.Millisecond * 100
