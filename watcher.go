@@ -211,8 +211,8 @@ func (w *Watcher) TriggerEvent(eventType EventType, file os.FileInfo) {
 	w.Event <- Event{eventType, file}
 }
 
-// Start starts the watching process and checks for changes every `pollInterval`
-// amount of milliseconds. If pollInterval is 0, the default is 100ms.
+// Start starts the watching process and checks for changes every `pollInterval` duration.
+// If pollInterval is 0, the default is 100ms.
 func (w *Watcher) Start(pollInterval time.Duration) error {
 	if pollInterval <= 0 {
 		pollInterval = time.Millisecond * 100
