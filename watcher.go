@@ -244,10 +244,10 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 
 		// Check for added files.
 		for path, file := range fileList {
+			if w.maxEventsPerCycle > 0 && numEvents >= w.maxEventsPerCycle {
+				goto SLEEP
+			}
 			if _, found := w.Files[path]; !found {
-				if w.maxEventsPerCycle > 0 && numEvents >= w.maxEventsPerCycle {
-					goto SLEEP
-				}
 				addedAndDeleted[path] = struct{}{}
 				w.Event <- Event{EventType: EventFileAdded, FileInfo: file}
 				numEvents++
@@ -256,10 +256,10 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 
 		// Check for deleted files.
 		for path, file := range w.Files {
+			if w.maxEventsPerCycle > 0 && numEvents >= w.maxEventsPerCycle {
+				goto SLEEP
+			}
 			if _, found := fileList[path]; !found {
-				if w.maxEventsPerCycle > 0 && numEvents >= w.maxEventsPerCycle {
-					goto SLEEP
-				}
 				addedAndDeleted[path] = struct{}{}
 				w.Event <- Event{EventType: EventFileDeleted, FileInfo: file}
 				numEvents++
@@ -268,10 +268,10 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 
 		// Check for modified files.
 		for path, file := range w.Files {
+			if w.maxEventsPerCycle > 0 && numEvents >= w.maxEventsPerCycle {
+				goto SLEEP
+			}
 			if _, found := addedAndDeleted[path]; !found {
-				if w.maxEventsPerCycle > 0 && numEvents >= w.maxEventsPerCycle {
-					goto SLEEP
-				}
 				if fileList[path].ModTime() != file.ModTime() {
 					w.Event <- Event{EventType: EventFileModified, FileInfo: file}
 					numEvents++
@@ -280,11 +280,8 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 		}
 
 	SLEEP:
-
-		// Update w.Files.
+		// Update w.Files and then sleep for a little bit.
 		w.Files = fileList
-
-		// Sleep for a little bit.
 		time.Sleep(pollInterval)
 	}
 
