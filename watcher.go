@@ -240,42 +240,48 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 		}
 
 		numEvents := 0
-		if len(fileList) > len(w.Files) {
-			// Check for new files.
-			for path, fInfo := range fileList {
-				if _, found := w.Files[path]; !found {
-					if w.maxEventsPerCycle > 0 && numEvents >= w.maxEventsPerCycle {
-						break
-					}
-					w.Event <- Event{EventType: EventFileAdded, FileInfo: fInfo}
-					numEvents++
-				}
-			}
-			w.Files = fileList
-		} else if len(fileList) < len(w.Files) {
-			// Check for deleted files.
-			for path, fInfo := range w.Files {
-				if _, found := fileList[path]; !found {
-					if w.maxEventsPerCycle > 0 && numEvents >= w.maxEventsPerCycle {
-						break
-					}
-					w.Event <- Event{EventType: EventFileDeleted, FileInfo: fInfo}
-					numEvents++
-				}
-			}
-			w.Files = fileList
-		}
+		addedAndDeleted := make(map[string]struct{})
 
-		// Check for modified files.
-		for i, file := range w.Files {
-			if fileList[i].ModTime() != file.ModTime() {
+		// Check for added files.
+		for path, file := range fileList {
+			if _, found := w.Files[path]; !found {
 				if w.maxEventsPerCycle > 0 && numEvents >= w.maxEventsPerCycle {
-					break
+					goto SLEEP
 				}
-				w.Event <- Event{EventType: EventFileModified, FileInfo: file}
+				addedAndDeleted[path] = struct{}{}
+				w.Event <- Event{EventType: EventFileAdded, FileInfo: file}
 				numEvents++
 			}
 		}
+
+		// Check for deleted files.
+		for path, file := range w.Files {
+			if _, found := fileList[path]; !found {
+				if w.maxEventsPerCycle > 0 && numEvents >= w.maxEventsPerCycle {
+					goto SLEEP
+				}
+				addedAndDeleted[path] = struct{}{}
+				w.Event <- Event{EventType: EventFileDeleted, FileInfo: file}
+				numEvents++
+			}
+		}
+
+		// Check for modified files.
+		for path, file := range w.Files {
+			if _, found := addedAndDeleted[path]; !found {
+				if w.maxEventsPerCycle > 0 && numEvents >= w.maxEventsPerCycle {
+					goto SLEEP
+				}
+				if fileList[path].ModTime() != file.ModTime() {
+					w.Event <- Event{EventType: EventFileModified, FileInfo: file}
+					numEvents++
+				}
+			}
+		}
+
+	SLEEP:
+
+		// Update w.Files.
 		w.Files = fileList
 
 		// Sleep for a little bit.
