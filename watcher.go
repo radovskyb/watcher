@@ -338,7 +338,6 @@ func ListFiles(name string, options ...Option) (map[string]os.FileInfo, error) {
 		return fileList, nil
 	}
 
-	var currentDir string
 	if err := filepath.Walk(name, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -348,12 +347,7 @@ func ListFiles(name string, options ...Option) (map[string]os.FileInfo, error) {
 			return nil
 		}
 
-		if info.IsDir() {
-			fileList[filepath.Join(currentDir, info.Name())] = info
-			currentDir = filepath.Join(currentDir, info.Name())
-		} else {
-			fileList[filepath.Join(currentDir, info.Name())] = info
-		}
+		fileList[path] = info
 
 		return nil
 	}); err != nil {
