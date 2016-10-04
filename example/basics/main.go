@@ -27,7 +27,7 @@ func main() {
 		for {
 			select {
 			case event := <-w.Event:
-				// Print the event type.
+				// Print the event's info.
 				fmt.Println(event)
 
 				// Print out the file name with a message
