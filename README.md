@@ -20,7 +20,7 @@ go get -u github.com/radovskyb/watcher
 
 - Choose to watch folders recursively/non-recursively.
 - Choose to ignore dot files.
-- Notify the file's info that the event is based on. (Name, ModTime, etc.)
+- Notify the file's info that the event is based on. For example: Name, ModTime, IsDir, etc.
 - Trigger custom events.
 - Limit amount of events that can be received per watching cycle.
 
