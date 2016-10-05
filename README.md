@@ -16,14 +16,17 @@ With `watcher`, when adding a folder to the watchlist, the folder will be watche
 go get -u github.com/radovskyb/watcher
 ```
 
+# Features
+
+- Choose to watch folders recursively/non-recursively.
+- Choose to ignore dot files.
+- Notify the file's info that the event is based on. (Name, ModTime, etc.)
+- Trigger custom events.
+- Limit amount of events that can be received per watching cycle.
+
 # Todo
 
-1. Write tests. -- in progress
-2. Notify name of file from event. -- done
-3. Trigger events. -- done
-4. Unique path structures. -- done
-5. Change options for on individual files/folders add method instead of at initialization?
-6. Throttle event amount per cycle based on setting. -- done
+1. Write more tests.
 
 # Example
 
