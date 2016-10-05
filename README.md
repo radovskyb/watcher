@@ -2,11 +2,11 @@
 
 [![Build Status](https://travis-ci.org/radovskyb/watcher.svg?branch=master)](https://travis-ci.org/radovskyb/watcher)
 
-`watcher` is a simple Go package for watching for files or directory changes without using filesystem events.
+`watcher` is a simple Go package for watching for files or directory changes without using filesystem events, which allows it to work cross platform consistently.
 
 `watcher` watches for changes and notifies over channels either anytime an event or an error has occured.
 
-`watcher`'s simple structure is purposely similar in appearance to fsnotify, yet it doesn't use any system specific events, so should work cross platform consistently.
+Events contain the `os.FileInfo` of the file or directory that the event is based on and the type of event that has occured.
 
 # Installation
 
@@ -18,7 +18,7 @@ go get -u github.com/radovskyb/watcher
 
 - Watch folders recursively or non-recursively.
 - Choose to ignore dot files.
-- Notify the file's info that the event is based on. e.g `Name`, `ModTime`, `IsDir`, etc.
+- Notify the `os.FileInfo` of the file that the event is based on. e.g `Name`, `ModTime`, `IsDir`, etc.
 - Trigger custom events.
 - Limit amount of events that can be received per watching cycle.
 
