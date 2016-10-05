@@ -16,6 +16,7 @@ go get -u github.com/radovskyb/watcher
 
 # Features
 
+- Customizable polling interval.
 - Watch folders recursively or non-recursively.
 - Choose to ignore dot files.
 - Notify the `os.FileInfo` of the file that the event is based on. e.g `Name`, `ModTime`, `IsDir`, etc.
