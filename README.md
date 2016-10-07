@@ -31,6 +31,8 @@ go get -u github.com/radovskyb/watcher/...
 
 `watcher` comes with a simple command which is installed when using the `go get` command from above.
 
+# Command Usage
+
 ```
 Usage of watcher:
   -cmd string
