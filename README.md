@@ -29,7 +29,7 @@ go get -u github.com/radovskyb/watcher/...
 
 # Command
 
-`watcher` comes with a simple command which be installed when using the `go get` command from above.
+`watcher` comes with a simple command which is installed when using the `go get` command from above.
 
 ```
 Usage of watcher:
