@@ -41,6 +41,9 @@ const (
 	IgnoreDotFiles
 )
 
+// An Event desribes an event that is received when files or directory
+// changes occur. It includes the os.FileInfo os the changes file or
+// directory and the type of event that's occured.
 type Event struct {
 	EventType
 	os.FileInfo

@@ -26,6 +26,7 @@ go get -u github.com/radovskyb/watcher/...
 # Todo
 
 - Write more tests.
+- Watch only specific extensions. (not yet sure if needed)
 
 # Command
 
