@@ -355,6 +355,9 @@ func ListFiles(name string, options ...Option) (map[string]os.FileInfo, error) {
 		}
 
 		if ignoreDotFiles && strings.HasPrefix(info.Name(), ".") {
+			if info.IsDir() && info.Name() != "." && info.Name() != ".." {
+				return filepath.SkipDir
+			}
 			return nil
 		}
 
