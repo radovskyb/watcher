@@ -11,7 +11,7 @@ Events contain the `os.FileInfo` of the file or directory that the event is base
 # Installation
 
 ```shell
-go get -u github.com/radovskyb/watcher
+go get -u github.com/radovskyb/watcher/...
 ```
 
 # Features
