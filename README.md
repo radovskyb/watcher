@@ -49,11 +49,11 @@ watcher
 ```
 (watches the current directory recursively for changes and notifies for any events that occur.)
 
-Here is a different example with using the `watcher` command:
+A more elaborate example using the `watcher` command:
 ```shell
 watcher -dotfiles=false -recursive=false -cmd="./myscript" main.go ../
 ```
-In this example, `watcher` will ignore dot files and folders and won't watch any of the specified folders recursively. It will also run the script `./myscript`, anytime an event occurs while watching `main.go` or any files or folders in the previous directory (`../`).
+In this example, `watcher` will ignore dot files and folders and won't watch any of the specified folders recursively. It will also run the script `./myscript` anytime an event occurs while watching `main.go` or any files or folders in the previous directory (`../`).
 
 # Example
 
