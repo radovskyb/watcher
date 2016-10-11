@@ -299,7 +299,9 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 	return nil
 }
 
-func hasOption(option Option, options []Option) bool {
+// hasOption returns true or false based on whether or not
+// an Option exists in an Option slice.
+func hasOption(options []Option, option Option) bool {
 	for _, o := range options {
 		if option&o != 0 {
 			return true
@@ -316,8 +318,8 @@ func ListFiles(name string, options ...Option) (map[string]os.FileInfo, error) {
 
 	name = filepath.Clean(name)
 
-	nonRecursive := hasOption(NonRecursive, options)
-	ignoreDotFiles := hasOption(IgnoreDotFiles, options)
+	nonRecursive := hasOption(options, NonRecursive)
+	ignoreDotFiles := hasOption(options, IgnoreDotFiles)
 
 	if nonRecursive {
 		f, err := os.Open(name)
