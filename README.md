@@ -28,7 +28,7 @@ go get -u github.com/radovskyb/watcher/...
 
 - Write more tests.
 - Watch only specific extensions. (yes/no/maybe?)
-- Add some concurrency to the watching cycle if needed.
+- Add some concurrency to the watching cycle to speed things up in highly recursive folders.
 - Pipe stdout to command if flag is selected.
 
 # Command
