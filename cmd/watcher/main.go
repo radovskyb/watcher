@@ -19,6 +19,7 @@ func main() {
 	recursive := flag.Bool("recursive", true, "watch folders recursively")
 	dotfiles := flag.Bool("dotfiles", true, "watch dot files")
 	cmd := flag.String("cmd", "", "command to run when an event occurs")
+	listFiles := flag.Bool("list", false, "list watched files on start")
 
 	flag.Parse()
 
@@ -95,10 +96,12 @@ func main() {
 	}
 
 	// Print a list of all of the files and folders being watched.
-	for path, f := range w.Files {
-		fmt.Printf("%s: %s\n", path, f.Name())
+	if *listFiles {
+		for path, f := range w.Files {
+			fmt.Printf("%s: %s\n", path, f.Name())
+		}
+		fmt.Println()
 	}
-	fmt.Println()
 
 	// Parse the interval string into a time.Duration.
 	parsedInterval, err := time.ParseDuration(*interval)

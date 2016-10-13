@@ -22,6 +22,7 @@ go get -u github.com/radovskyb/watcher/...
 - Notify the `os.FileInfo` of the file that the event is based on. e.g `Name`, `ModTime`, `IsDir`, etc.
 - Trigger custom events.
 - Limit amount of events that can be received per watching cycle.
+- Choose to list the files being watched.
 
 # Todo
 
@@ -43,6 +44,8 @@ Usage of watcher:
     	watch dot files (default true)
   -interval string
     	watcher poll interval (default "100ms")
+  -list
+    	list watched files on start (default false)
   -recursive
     	watch folders recursively (default true)
 ```

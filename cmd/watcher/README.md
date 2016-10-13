@@ -16,6 +16,8 @@ Usage of watcher:
     	watch dot files (default true)
   -interval string
     	watcher poll interval (default "100ms")
+  -list 
+    	list watched files on start (default false)
   -recursive
     	watch folders recursively (default true)
 ```
