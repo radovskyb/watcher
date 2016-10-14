@@ -36,7 +36,7 @@ watcher -dotfiles=false -recursive=false -cmd="./myscript" main.go ../
 ```
 In this example, `watcher` will ignore dot files and folders and won't watch any of the specified folders recursively. It will also run the script `./myscript` anytime an event occurs while watching `main.go` or any files or folders in the previous directory (`../`).
 
-Using the `-pipe` and `-cmd` flags together will send the event's info to the command's stdin when changes are detected.
+Using the `pipe` and `cmd` flags together will send the event's info to the command's stdin when changes are detected.
 
 First create a file called `script.py` with the following contents:
 ```python
@@ -46,7 +46,7 @@ for line in sys.stdin:
 	print line + " - python"
 ```
 
-Next, start watcher with the pipe and cmd flags enabled:
+Next, start watcher with the `pipe` and `cmd` flags enabled:
 ```shell
 watcher -cmd="python script.py" -pipe=true
 ```
