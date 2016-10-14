@@ -18,6 +18,8 @@ Usage of watcher:
     	watcher poll interval (default "100ms")
   -list 
     	list watched files on start (default false)
+  -pipe
+    	pipe event's info to command's stdin (default false)
   -recursive
     	watch folders recursively (default true)
 ```
@@ -33,3 +35,18 @@ A more elaborate example using the `watcher` command:
 watcher -dotfiles=false -recursive=false -cmd="./myscript" main.go ../
 ```
 In this example, `watcher` will ignore dot files and folders and won't watch any of the specified folders recursively. It will also run the script `./myscript` anytime an event occurs while watching `main.go` or any files or folders in the previous directory (`../`).
+
+Here is anexample using the `-pipe` flag with the `-cmd` flag which will send the event's info to a python script when changes are detected.
+
+1. Create a file calling `script.py` with this as it's contents:
+```python
+import sys
+
+for line in sys.stdin:
+	print line + " - python"
+```
+2. Run watcher:
+```shell
+watcher -cmd="python script.py" -pipe=true
+```
+3. When changes are detected, the event's info will be output with `- python` appended to the end of it.

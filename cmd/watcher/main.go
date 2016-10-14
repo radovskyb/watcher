@@ -20,6 +20,7 @@ func main() {
 	dotfiles := flag.Bool("dotfiles", true, "watch dot files")
 	cmd := flag.String("cmd", "", "command to run when an event occurs")
 	listFiles := flag.Bool("list", false, "list watched files on start")
+	stdinPipe := flag.Bool("pipe", false, "pipe event's info to command's stdin")
 
 	flag.Parse()
 
@@ -75,7 +76,11 @@ func main() {
 				// Run the command if one was specified.
 				if *cmd != "" {
 					c := exec.Command(cmdName, cmdArgs...)
-					c.Stdin = os.Stdin
+					if *stdinPipe {
+						c.Stdin = strings.NewReader(event.String())
+					} else {
+						c.Stdin = os.Stdin
+					}
 					c.Stdout = os.Stdout
 					c.Stderr = os.Stderr
 					if err := c.Run(); err != nil {
