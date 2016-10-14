@@ -46,9 +46,9 @@ for line in sys.stdin:
 	print line + " - python"
 ```
 
-Next start watcher:
+Next, start watcher with the pipe and cmd flags enabled:
 ```shell
 watcher -cmd="python script.py" -pipe=true
 ```
 
-Now when changes are detected, the event's info will be output with `- python` appended to the end of it from the running pythong script.
+Now when changes are detected, the event's info will be output from the running python script.
