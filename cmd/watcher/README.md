@@ -39,6 +39,7 @@ In this example, `watcher` will ignore dot files and folders and won't watch any
 Using the `-pipe` and `-cmd` flags together will send the event's info to the command's stdin when changes are detected.
 
 1. Create a file calling `script.py` with this as it's contents:
+
 ```python
 import sys
 
