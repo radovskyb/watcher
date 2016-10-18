@@ -43,7 +43,7 @@ First create a file called `script.py` with the following contents:
 import sys
 
 for line in sys.stdin:
-	print line + " - python"
+	print (line + " - python")
 ```
 
 Next, start watcher with the `pipe` and `cmd` flags enabled:
