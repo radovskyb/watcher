@@ -27,6 +27,7 @@ go get -u github.com/radovskyb/watcher/...
 # Todo
 
 - Write more tests.
+- Write benchmarks.
 - Watch only specific extensions. (yes/no/maybe?)
 - Add some concurrency to the watching cycle to speed things up in highly recursive folders.
 
