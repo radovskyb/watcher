@@ -28,6 +28,7 @@ const (
 	EventFileAdded EventType = 1 << iota
 	EventFileDeleted
 	EventFileModified
+	EventFileRenamed
 )
 
 // An Option is a type that is used to set options for a Watcher.
@@ -42,30 +43,31 @@ const (
 )
 
 // An Event desribes an event that is received when files or directory
-// changes occur. It includes the os.FileInfo os the changes file or
-// directory and the type of event that's occured.
+// changes occur. It includes the os.FileInfo of the changed file or
+// directory and the type of event that's occured and the full path of the file.
 type Event struct {
 	EventType
+	Path string
 	os.FileInfo
 }
 
 // String returns a string depending on what type of event occured and the
 // file name associated with the event.
 func (e Event) String() string {
-	var fileType string
+	pathType := "FILE"
 	if e.IsDir() {
-		fileType = "DIRECTORY"
-	} else {
-		fileType = "FILE"
+		pathType = "DIRECTORY"
 	}
 
 	switch e.EventType {
 	case EventFileAdded:
-		return fmt.Sprintf("%s %q ADDED", fileType, e.Name())
+		return fmt.Sprintf("%s %q ADDED", pathType, e.Name())
 	case EventFileDeleted:
-		return fmt.Sprintf("%s %q DELETED", fileType, e.Name())
+		return fmt.Sprintf("%s %q DELETED", pathType, e.Name())
 	case EventFileModified:
-		return fmt.Sprintf("%s %q MODIFIED", fileType, e.Name())
+		return fmt.Sprintf("%s %q MODIFIED", pathType, e.Name())
+	case EventFileRenamed:
+		return fmt.Sprintf("%s %q RENAMED", pathType, e.Name())
 	default:
 		return "UNRECOGNIZED EVENT"
 	}
@@ -73,8 +75,11 @@ func (e Event) String() string {
 
 // A Watcher describes a file watcher.
 type Watcher struct {
-	Event chan Event
-	Error chan error
+	Event      chan Event
+	eventPipe  chan Event
+	piping     chan struct{}
+	donePiping chan struct{}
+	Error      chan error
 
 	options []Option
 
@@ -88,14 +93,19 @@ type Watcher struct {
 
 // New returns a new initialized *Watcher.
 func New(options ...Option) *Watcher {
-	return &Watcher{
-		Event:   make(chan Event),
-		Error:   make(chan error),
-		options: options,
-		mu:      new(sync.Mutex),
-		Files:   make(map[string]os.FileInfo),
-		Names:   []string{},
+	w := &Watcher{
+		Event:      make(chan Event),
+		eventPipe:  make(chan Event),
+		piping:     make(chan struct{}, 1),
+		donePiping: make(chan struct{}, 1),
+		Error:      make(chan error),
+		options:    options,
+		mu:         new(sync.Mutex),
+		Files:      make(map[string]os.FileInfo),
+		Names:      []string{},
 	}
+	go w.startEventPipe()
+	return w
 }
 
 // SetMaxEvents controls the maximum amount of events that are sent on
@@ -219,7 +229,49 @@ func (w *Watcher) TriggerEvent(eventType EventType, file os.FileInfo) {
 	if file == nil {
 		file = &fileInfo{name: "triggered event", modTime: time.Now()}
 	}
-	w.Event <- Event{eventType, file}
+	w.Event <- Event{EventType: eventType, Path: "", FileInfo: file}
+}
+
+func (w *Watcher) startEventPipe() {
+	for {
+		<-w.piping
+
+		// map of EventType to map of Path to Event
+		events := map[EventType]map[string]Event{
+			EventFileAdded:    make(map[string]Event),
+			EventFileDeleted:  make(map[string]Event),
+			EventFileModified: make(map[string]Event),
+			EventFileRenamed:  make(map[string]Event),
+		}
+
+	INNER:
+		for {
+			select {
+			case e := <-w.eventPipe:
+				events[e.EventType][e.Path] = e
+			case <-w.donePiping:
+				break INNER
+			}
+		}
+
+		for path := range events[EventFileRenamed] {
+			if _, found := events[EventFileAdded][path]; found {
+				delete(events[EventFileAdded], path)
+				delete(events[EventFileRenamed], path)
+			}
+			if _, found := events[EventFileDeleted][path]; found {
+				delete(events[EventFileDeleted], path)
+			}
+		}
+
+		for _, eventMap := range events {
+			for _, event := range eventMap {
+				w.Event <- event
+			}
+		}
+
+		w.piping <- struct{}{}
+	}
 }
 
 // Start starts the watching process and checks for changes every `pollInterval` duration.
@@ -241,6 +293,8 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 			if err != nil {
 				if os.IsNotExist(err) {
 					w.Error <- ErrWatchedFileDeleted
+					// TODO: remove and continue if there is still
+					// more than 1 file left after removal.
 				} else {
 					w.Error <- err
 				}
@@ -250,8 +304,11 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 			}
 		}
 
+		w.piping <- struct{}{}
+
 		numEvents := 0
-		addedAndDeleted := make(map[string]struct{})
+
+		addedAndDeleted := make(map[string]os.FileInfo)
 
 		// Check for added files.
 		for path, file := range fileList {
@@ -259,8 +316,12 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 				goto SLEEP
 			}
 			if _, found := w.Files[path]; !found {
-				addedAndDeleted[path] = struct{}{}
-				w.Event <- Event{EventType: EventFileAdded, FileInfo: file}
+				addedAndDeleted[path] = fileList[path]
+				w.eventPipe <- Event{
+					EventType: EventFileAdded,
+					Path:      path,
+					FileInfo:  file,
+				}
 				numEvents++
 			}
 		}
@@ -271,9 +332,36 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 				goto SLEEP
 			}
 			if _, found := fileList[path]; !found {
-				addedAndDeleted[path] = struct{}{}
-				w.Event <- Event{EventType: EventFileDeleted, FileInfo: file}
+				addedAndDeleted[path] = w.Files[path]
+				w.eventPipe <- Event{
+					EventType: EventFileDeleted,
+					Path:      path,
+					FileInfo:  file,
+				}
 				numEvents++
+			}
+		}
+
+		// Check for renamed files.
+		for path1, file1 := range addedAndDeleted {
+			for path2, file2 := range addedAndDeleted {
+				if w.maxEventsPerCycle > 0 && numEvents >= w.maxEventsPerCycle {
+					goto SLEEP
+				}
+				if path1 != path2 {
+					if filepath.Dir(path1) == filepath.Dir(path2) &&
+						file1.IsDir() == file2.IsDir() &&
+						file1.ModTime() == file2.ModTime() &&
+						file1.Mode() == file2.Mode() &&
+						file1.Size() == file2.Size() {
+						w.eventPipe <- Event{
+							EventType: EventFileRenamed,
+							Path:      path2,
+							FileInfo:  file2,
+						}
+						numEvents++
+					}
+				}
 			}
 		}
 
@@ -284,13 +372,20 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 			}
 			if _, found := addedAndDeleted[path]; !found {
 				if fileList[path].ModTime() != file.ModTime() {
-					w.Event <- Event{EventType: EventFileModified, FileInfo: file}
+					w.eventPipe <- Event{
+						EventType: EventFileModified,
+						Path:      path,
+						FileInfo:  file,
+					}
 					numEvents++
 				}
 			}
 		}
 
 	SLEEP:
+		w.donePiping <- struct{}{}
+		<-w.piping
+
 		// Update w.Files and then sleep for a little bit.
 		w.Files = fileList
 		time.Sleep(pollInterval)
