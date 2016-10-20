@@ -31,6 +31,7 @@ go get -u github.com/radovskyb/watcher/...
 - Write benchmarks.
 - Watch only specific extensions. (yes/no/maybe?)
 - Make renames work even when SetMaxEvents is less than 4 (event piping causes problems).
+- Make sure renames based on modtime actually work cross platform.
 
 # Command
 

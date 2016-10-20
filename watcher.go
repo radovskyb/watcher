@@ -348,7 +348,7 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 				}
 				if path1 != path2 && filepath.Dir(path1) == filepath.Dir(path2) &&
 					file1.IsDir() == file2.IsDir() &&
-					file1.ModTime() == file2.ModTime() &&
+					file1.ModTime() == file2.ModTime() && // TODO: Check this <-
 					file1.Mode() == file2.Mode() &&
 					file1.Size() == file2.Size() {
 					w.eventPipe <- Event{
