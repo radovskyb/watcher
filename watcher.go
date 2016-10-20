@@ -266,7 +266,6 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 		for path, file := range fileList {
 			if _, found := w.Files[path]; !found {
 				addedAndDeleted[EventFileAdded][path] = file
-				numEvents++
 			}
 		}
 
@@ -279,7 +278,7 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 
 		// Check for renamed files.
 		for path1, file1 := range addedAndDeleted[EventFileAdded] {
-			if w.maxEventsPerCycle > 0 && numEvents > w.maxEventsPerCycle {
+			if w.maxEventsPerCycle > 0 && numEvents >= w.maxEventsPerCycle {
 				goto SLEEP
 			}
 			for path2, file2 := range addedAndDeleted[EventFileDeleted] {
@@ -307,7 +306,7 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 		}
 
 		for path, file := range addedAndDeleted[EventFileAdded] {
-			if w.maxEventsPerCycle > 0 && numEvents > w.maxEventsPerCycle {
+			if w.maxEventsPerCycle > 0 && numEvents >= w.maxEventsPerCycle {
 				goto SLEEP
 			}
 			w.Event <- Event{
@@ -319,7 +318,7 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 		}
 
 		for path, file := range addedAndDeleted[EventFileDeleted] {
-			if w.maxEventsPerCycle > 0 && numEvents > w.maxEventsPerCycle {
+			if w.maxEventsPerCycle > 0 && numEvents >= w.maxEventsPerCycle {
 				goto SLEEP
 			}
 			w.Event <- Event{
@@ -332,7 +331,7 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 
 		// Check for modified files.
 		for path, file := range w.Files {
-			if w.maxEventsPerCycle > 0 && numEvents > w.maxEventsPerCycle {
+			if w.maxEventsPerCycle > 0 && numEvents >= w.maxEventsPerCycle {
 				goto SLEEP
 			}
 			_, addedFound := addedAndDeleted[EventFileAdded][path]
