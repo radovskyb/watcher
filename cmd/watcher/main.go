@@ -108,6 +108,8 @@ func main() {
 		fmt.Println()
 	}
 
+	fmt.Printf("Watching %d files\n", len(w.Files))
+
 	// Parse the interval string into a time.Duration.
 	parsedInterval, err := time.ParseDuration(*interval)
 	if err != nil {
