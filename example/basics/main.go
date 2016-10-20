@@ -39,6 +39,8 @@ func main() {
 					fmt.Println("Added file:", event.Name())
 				case watcher.EventFileDeleted:
 					fmt.Println("Deleted file:", event.Name())
+				case watcher.EventFileRenamed:
+					fmt.Println("Renamed file:", event.Name())
 				}
 			case err := <-w.Error:
 				log.Fatalln(err)

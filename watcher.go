@@ -227,7 +227,7 @@ func (w *Watcher) TriggerEvent(eventType EventType, file os.FileInfo) {
 	if file == nil {
 		file = &fileInfo{name: "triggered event", modTime: time.Now()}
 	}
-	w.Event <- Event{EventType: eventType, Path: "", FileInfo: file}
+	w.Event <- Event{EventType: eventType, Path: "-", FileInfo: file}
 }
 
 func (w *Watcher) startEventPipe() {

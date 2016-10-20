@@ -20,6 +20,7 @@ go get -u github.com/radovskyb/watcher/...
 - Watch folders recursively or non-recursively.
 - Choose to ignore dot files.
 - Notify the `os.FileInfo` of the file that the event is based on. e.g `Name`, `ModTime`, `IsDir`, etc.
+- Notify the full path of the file that the event is based on.
 - Trigger custom events.
 - Limit amount of events that can be received per watching cycle.
 - Choose to list the files being watched.
@@ -29,7 +30,7 @@ go get -u github.com/radovskyb/watcher/...
 - Write more tests.
 - Write benchmarks.
 - Watch only specific extensions. (yes/no/maybe?)
-- Add some concurrency to the watching cycle to speed things up in highly recursive folders.
+- Make renames work even when SetMaxEvents is less than 4 (event piping causes problems).
 
 # Command
 
@@ -125,6 +126,8 @@ func main() {
 					fmt.Println("Added file:", event.Name())
 				case watcher.EventFileDeleted:
 					fmt.Println("Deleted file:", event.Name())
+				case watcher.EventFileRenamed:
+					fmt.Println("Renamed file:", event.Name())
 				}
 			case err := <-w.Error:
 				log.Fatalln(err)
