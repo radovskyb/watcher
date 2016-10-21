@@ -25,10 +25,11 @@ var (
 type EventType int
 
 const (
-	EventFileAdded EventType = 1 << iota
-	EventFileDeleted
-	EventFileModified
-	EventFileRenamed
+	Add EventType = 1 << iota
+	Remove
+	Modify
+	Rename
+	Chmod
 )
 
 // An Option is a type that is used to set options for a Watcher.
@@ -60,14 +61,16 @@ func (e Event) String() string {
 	}
 
 	switch e.EventType {
-	case EventFileAdded:
-		return fmt.Sprintf("%s %q ADDED [%s]", pathType, e.Name(), e.Path)
-	case EventFileDeleted:
-		return fmt.Sprintf("%s %q DELETED [%s]", pathType, e.Name(), e.Path)
-	case EventFileModified:
-		return fmt.Sprintf("%s %q MODIFIED [%s]", pathType, e.Name(), e.Path)
-	case EventFileRenamed:
-		return fmt.Sprintf("%s %q RENAMED [%s]", pathType, e.Name(), e.Path)
+	case Add:
+		return fmt.Sprintf("%s %q ADD [%s]", pathType, e.Name(), e.Path)
+	case Remove:
+		return fmt.Sprintf("%s %q REMOVE [%s]", pathType, e.Name(), e.Path)
+	case Modify:
+		return fmt.Sprintf("%s %q MODIFY [%s]", pathType, e.Name(), e.Path)
+	case Rename:
+		return fmt.Sprintf("%s %q RENAME [%s]", pathType, e.Name(), e.Path)
+	case Chmod:
+		return fmt.Sprintf("%s %q CHMOD [%s]", pathType, e.Name(), e.Path)
 	default:
 		return "UNRECOGNIZED EVENT"
 	}
@@ -90,7 +93,7 @@ type Watcher struct {
 
 // New returns a new initialized *Watcher.
 func New(options ...Option) *Watcher {
-	w := &Watcher{
+	return &Watcher{
 		Event:   make(chan Event),
 		Error:   make(chan error),
 		options: options,
@@ -98,7 +101,6 @@ func New(options ...Option) *Watcher {
 		Files:   make(map[string]os.FileInfo),
 		Names:   []string{},
 	}
-	return w
 }
 
 // SetMaxEvents controls the maximum amount of events that are sent on
@@ -257,72 +259,73 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 
 		numEvents := 0
 
-		addedAndDeleted := map[EventType]map[string]os.FileInfo{
-			EventFileAdded:   make(map[string]os.FileInfo),
-			EventFileDeleted: make(map[string]os.FileInfo),
+		events := map[EventType]map[string]os.FileInfo{
+			Add:    make(map[string]os.FileInfo),
+			Remove: make(map[string]os.FileInfo),
 		}
 
 		// Check for added files.
 		for path, file := range fileList {
 			if _, found := w.Files[path]; !found {
-				addedAndDeleted[EventFileAdded][path] = file
+				events[Add][path] = file
 			}
 		}
 
 		// Check for deleted files.
 		for path, file := range w.Files {
 			if _, found := fileList[path]; !found {
-				addedAndDeleted[EventFileDeleted][path] = file
+				events[Remove][path] = file
 			}
 		}
 
 		// Check for renamed files.
-		for path1, file1 := range addedAndDeleted[EventFileAdded] {
+		for path1, file1 := range events[Add] {
 			if w.maxEventsPerCycle > 0 && numEvents >= w.maxEventsPerCycle {
 				goto SLEEP
 			}
-			for path2, file2 := range addedAndDeleted[EventFileDeleted] {
-				if path1 != path2 && filepath.Dir(path1) == filepath.Dir(path2) &&
+			for path2, file2 := range events[Remove] {
+				if file1.Size() == file2.Size() && path1 != path2 &&
+					filepath.Dir(path1) == filepath.Dir(path2) &&
 					file1.IsDir() == file2.IsDir() &&
 					file1.ModTime() == file2.ModTime() && // TODO: Check this <--
-					file1.Mode() == file2.Mode() &&
-					file1.Size() == file2.Size() {
+					file1.Mode() == file2.Mode() {
 					w.Event <- Event{
-						EventType: EventFileRenamed,
+						EventType: Rename,
 						Path:      path2,
 						FileInfo:  file2,
 					}
 					numEvents++
 
-					// TODO: check which ones actually need deleting.. lazy delete atm.
-					delete(addedAndDeleted[EventFileAdded], path1)
-					delete(addedAndDeleted[EventFileAdded], path2)
-					delete(addedAndDeleted[EventFileDeleted], path1)
-					delete(addedAndDeleted[EventFileDeleted], path2)
+					// Delete path1 from the added files map.
+					delete(events[Add], path1)
+
+					// Delete path2 from the deleted files map.
+					delete(events[Remove], path2)
+
+					// Delete path2 from w.Files.
 					delete(w.Files, path2)
-					delete(w.Files, path1)
 				}
 			}
 		}
 
-		for path, file := range addedAndDeleted[EventFileAdded] {
+		for path, file := range events[Add] {
 			if w.maxEventsPerCycle > 0 && numEvents >= w.maxEventsPerCycle {
 				goto SLEEP
 			}
 			w.Event <- Event{
-				EventType: EventFileAdded,
+				EventType: Add,
 				Path:      path,
 				FileInfo:  file,
 			}
 			numEvents++
 		}
 
-		for path, file := range addedAndDeleted[EventFileDeleted] {
+		for path, file := range events[Remove] {
 			if w.maxEventsPerCycle > 0 && numEvents >= w.maxEventsPerCycle {
 				goto SLEEP
 			}
 			w.Event <- Event{
-				EventType: EventFileDeleted,
+				EventType: Remove,
 				Path:      path,
 				FileInfo:  file,
 			}
@@ -334,12 +337,20 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 			if w.maxEventsPerCycle > 0 && numEvents >= w.maxEventsPerCycle {
 				goto SLEEP
 			}
-			_, addedFound := addedAndDeleted[EventFileAdded][path]
-			_, deletedFound := addedAndDeleted[EventFileDeleted][path]
-			if !addedFound && !deletedFound {
-				if fileList[path].ModTime() != file.ModTime() {
+			_, addFound := events[Add][path]
+			_, removeFound := events[Remove][path]
+			if !addFound && !removeFound {
+				if !file.IsDir() && fileList[path].ModTime() != file.ModTime() {
 					w.Event <- Event{
-						EventType: EventFileModified,
+						EventType: Modify,
+						Path:      path,
+						FileInfo:  file,
+					}
+					numEvents++
+				}
+				if fileList[path].Mode() != file.Mode() {
+					w.Event <- Event{
+						EventType: Chmod,
 						Path:      path,
 						FileInfo:  file,
 					}

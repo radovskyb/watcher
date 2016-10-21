@@ -374,7 +374,7 @@ func TestTriggerEvent(t *testing.T) {
 		}
 	}()
 
-	w.TriggerEvent(EventFileAdded, nil)
+	w.TriggerEvent(Add, nil)
 
 	wg.Wait()
 }
@@ -413,9 +413,8 @@ func TestEventAddFile(t *testing.T) {
 		for {
 			select {
 			case event := <-w.Event:
-				if event.EventType != EventFileAdded {
-					t.Errorf("expected event to be EventFileAdded, got %s",
-						event.EventType)
+				if event.EventType != Add {
+					t.Errorf("expected event to be Add, got %s", event.EventType)
 				}
 
 				files[event.Name()] = true
@@ -478,9 +477,8 @@ func TestEventDeleteFile(t *testing.T) {
 		for {
 			select {
 			case event := <-w.Event:
-				if event.EventType != EventFileDeleted {
-					t.Errorf("expected event to be EventEventFileDeleted, got %s",
-						event.EventType)
+				if event.EventType != Remove {
+					t.Errorf("expected event to be Remove, got %s", event.EventType)
 				}
 
 				files[event.Name()] = true
