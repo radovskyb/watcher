@@ -227,6 +227,11 @@ func (w *Watcher) TriggerEvent(eventType EventType, file os.FileInfo) {
 	w.Event <- Event{EventType: eventType, Path: "-", FileInfo: file}
 }
 
+type renamedFrom struct {
+	path string
+	os.FileInfo
+}
+
 // Start starts the watching process and checks for changes every `pollInterval` duration.
 // If pollInterval is 0, the default is 100ms.
 func (w *Watcher) Start(pollInterval time.Duration) error {
@@ -264,6 +269,8 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 			Remove: make(map[string]os.FileInfo),
 		}
 
+		renamed := make(map[string]renamedFrom)
+
 		// Check for added files.
 		for path, file := range fileList {
 			if _, found := w.Files[path]; !found {
@@ -271,7 +278,7 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 			}
 		}
 
-		// Check for deleted files.
+		// Check for removed files.
 		for path, file := range w.Files {
 			if _, found := fileList[path]; !found {
 				events[Remove][path] = file
@@ -287,8 +294,8 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 				if file1.Size() == file2.Size() && path1 != path2 &&
 					filepath.Dir(path1) == filepath.Dir(path2) &&
 					file1.IsDir() == file2.IsDir() &&
-					file1.ModTime() == file2.ModTime() && // TODO: Check this <--
-					file1.Mode() == file2.Mode() {
+					file1.ModTime() == file2.ModTime() { // TODO: Check this <--
+					renamed[path2] = renamedFrom{path1, file1}
 					w.Event <- Event{
 						EventType: Rename,
 						Path:      path2,
@@ -301,9 +308,6 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 
 					// Delete path2 from the deleted files map.
 					delete(events[Remove], path2)
-
-					// Delete path2 from w.Files.
-					delete(w.Files, path2)
 				}
 			}
 		}
@@ -339,7 +343,8 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 			}
 			_, addFound := events[Add][path]
 			_, removeFound := events[Remove][path]
-			if !addFound && !removeFound {
+			renamedFrom, renameFound := renamed[path]
+			if !addFound && !removeFound && !renameFound {
 				if !file.IsDir() && fileList[path].ModTime() != file.ModTime() {
 					w.Event <- Event{
 						EventType: Modify,
@@ -348,6 +353,7 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 					}
 					numEvents++
 				}
+
 				if fileList[path].Mode() != file.Mode() {
 					w.Event <- Event{
 						EventType: Chmod,
@@ -356,6 +362,14 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 					}
 					numEvents++
 				}
+			}
+			if renameFound && renamedFrom.Mode() != file.Mode() {
+				w.Event <- Event{
+					EventType: Chmod,
+					Path:      renamedFrom.path,
+					FileInfo:  renamedFrom.FileInfo,
+				}
+				numEvents++
 			}
 		}
 
