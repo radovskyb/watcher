@@ -120,14 +120,16 @@ func main() {
 				// Print out the file name with a message
 				// based on the event type.
 				switch event.EventType {
-				case watcher.EventFileModified:
+				case watcher.Modify:
 					fmt.Println("Modified file:", event.Name())
-				case watcher.EventFileAdded:
+				case watcher.Add:
 					fmt.Println("Added file:", event.Name())
-				case watcher.EventFileDeleted:
-					fmt.Println("Deleted file:", event.Name())
-				case watcher.EventFileRenamed:
+				case watcher.Remove:
+					fmt.Println("Remove file:", event.Name())
+				case watcher.Rename:
 					fmt.Println("Renamed file:", event.Name())
+				case watcher.Chmod:
+					fmt.Println("Chmoded file:", event.Name())
 				}
 			case err := <-w.Error:
 				log.Fatalln(err)
@@ -156,8 +158,8 @@ func main() {
 	// Trigger 2 events after 100 milliseconds.
 	go func() {
 		time.Sleep(time.Millisecond * 100)
-		w.TriggerEvent(watcher.EventFileAdded, nil)
-		w.TriggerEvent(watcher.EventFileDeleted, nil)
+		w.TriggerEvent(watcher.Add, nil)
+		w.TriggerEvent(watcher.Remove, nil)
 	}()
 
 	// Start the watching process - it'll check for changes every 100ms.

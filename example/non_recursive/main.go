@@ -27,14 +27,16 @@ func main() {
 				// Print out the file name with a message
 				// based on the event type.
 				switch event.EventType {
-				case watcher.EventFileModified:
+				case watcher.Modify:
 					fmt.Println("Modified file:", event.Name())
-				case watcher.EventFileAdded:
+				case watcher.Add:
 					fmt.Println("Added file:", event.Name())
-				case watcher.EventFileDeleted:
-					fmt.Println("Deleted file:", event.Name())
-				case watcher.EventFileRenamed:
+				case watcher.Remove:
+					fmt.Println("Remove file:", event.Name())
+				case watcher.Rename:
 					fmt.Println("Renamed file:", event.Name())
+				case watcher.Chmod:
+					fmt.Println("Chmoded file:", event.Name())
 				}
 			case err := <-w.Error:
 				log.Fatalln(err)
