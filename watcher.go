@@ -24,6 +24,7 @@ var (
 // of event has occured during the watching process.
 type EventType int
 
+// EventTypes
 const (
 	Add EventType = 1 << iota
 	Remove
@@ -378,8 +379,6 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 		w.Files = fileList
 		time.Sleep(pollInterval)
 	}
-
-	return nil
 }
 
 // hasOption returns true or false based on whether or not

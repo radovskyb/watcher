@@ -321,7 +321,7 @@ func TestWatcherRemove(t *testing.T) {
 
 	// Make sure len(w.Names) is now 0.
 	if len(w.Names) != 0 {
-		t.Errorf("expected len(w.Names) to be empty, len(w.Names): %s", len(w.Names))
+		t.Errorf("expected len(w.Names) to be empty, len(w.Names): %d", len(w.Names))
 	}
 }
 
@@ -414,7 +414,7 @@ func TestEventAddFile(t *testing.T) {
 			select {
 			case event := <-w.Event:
 				if event.EventType != Add {
-					t.Errorf("expected event to be Add, got %s", event.EventType)
+					t.Errorf("expected event to be Add, got %v", event.EventType)
 				}
 
 				files[event.Name()] = true
@@ -478,7 +478,7 @@ func TestEventDeleteFile(t *testing.T) {
 			select {
 			case event := <-w.Event:
 				if event.EventType != Remove {
-					t.Errorf("expected event to be Remove, got %s", event.EventType)
+					t.Errorf("expected event to be Remove, got %v", event.EventType)
 				}
 
 				files[event.Name()] = true
