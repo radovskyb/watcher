@@ -15,13 +15,13 @@ import (
 func setup(t *testing.T) (string, func()) {
 	testDir, err := ioutil.TempDir(".", "")
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	err = ioutil.WriteFile(filepath.Join(testDir, "file.txt"),
 		[]byte{}, 0755)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	files := []string{"file_1.txt", "file_2.txt", "file_3.txt"}
@@ -29,31 +29,31 @@ func setup(t *testing.T) (string, func()) {
 	for _, f := range files {
 		filePath := filepath.Join(testDir, f)
 		if err := ioutil.WriteFile(filePath, []byte{}, 0755); err != nil {
-			t.Error(err)
+			t.Fatal(err)
 		}
 	}
 
 	err = ioutil.WriteFile(filepath.Join(testDir, ".dotfile"),
 		[]byte{}, 0755)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	testDirTwo := filepath.Join(testDir, "testDirTwo")
 	err = os.Mkdir(testDirTwo, 0755)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	err = ioutil.WriteFile(filepath.Join(testDirTwo, "file_recursive.txt"),
 		[]byte{}, 0755)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	return testDir, func() {
 		if os.RemoveAll(testDir); err != nil {
-			t.Error(err)
+			t.Fatal(err)
 		}
 	}
 }
@@ -65,7 +65,7 @@ func TestSetNonRecursive(t *testing.T) {
 	w := New(NonRecursive)
 
 	if err := w.Add(testDir); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if len(w.Files) != 7 {
@@ -130,7 +130,7 @@ func TestSetIgnoreDotFiles(t *testing.T) {
 	w := New(IgnoreDotFiles)
 
 	if err := w.Add(testDir); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if len(w.Files) != 7 {
@@ -189,7 +189,7 @@ func TestSetIgnoreDotFilesAndNonRecursive(t *testing.T) {
 	w := New(IgnoreDotFiles, NonRecursive)
 
 	if err := w.Add(testDir); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if len(w.Files) != 6 {
@@ -248,7 +248,7 @@ func TestWatcherAdd(t *testing.T) {
 	w := New()
 
 	if err := w.Add(testDir); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	// Make sure len(w.Files) is 8.
@@ -301,7 +301,7 @@ func TestWatcherRemove(t *testing.T) {
 
 	// Add the testDir to the watchlist.
 	if err := w.Add(testDir); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	// Make sure len(w.Files) is 8.
@@ -347,7 +347,7 @@ func TestTriggerEvent(t *testing.T) {
 
 	// Add the testDir to the watchlist.
 	if err := w.Add("watcher_test.go"); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	var wg sync.WaitGroup
@@ -363,14 +363,14 @@ func TestTriggerEvent(t *testing.T) {
 					event.Name())
 			}
 		case <-time.After(time.Millisecond * 250):
-			t.Error("received no event from Event channel")
+			t.Fatal("received no event from Event channel")
 		}
 	}()
 
 	go func() {
 		// Start the watching process.
 		if err := w.Start(time.Millisecond * 100); err != nil {
-			t.Error(err)
+			t.Fatal(err)
 		}
 	}()
 
@@ -387,7 +387,7 @@ func TestEventAddFile(t *testing.T) {
 
 	// Add the testDir to the watchlist.
 	if err := w.Add(testDir); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	files := map[string]bool{
@@ -414,7 +414,7 @@ func TestEventAddFile(t *testing.T) {
 			select {
 			case event := <-w.Event:
 				if event.EventType != Add {
-					t.Errorf("expected event to be Add, got %v", event.EventType)
+					t.Errorf("expected event to be Add, got %s", event.EventType)
 				}
 
 				files[event.Name()] = true
@@ -429,6 +429,7 @@ func TestEventAddFile(t *testing.T) {
 						t.Errorf("received no event for file %s", f)
 					}
 				}
+				return
 			}
 		}
 	}()
@@ -436,7 +437,7 @@ func TestEventAddFile(t *testing.T) {
 	go func() {
 		// Start the watching process.
 		if err := w.Start(time.Millisecond * 100); err != nil {
-			t.Error(err)
+			t.Fatal(err)
 		}
 	}()
 
@@ -451,7 +452,7 @@ func TestEventDeleteFile(t *testing.T) {
 
 	// Add the testDir to the watchlist.
 	if err := w.Add(testDir); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	files := map[string]bool{
@@ -478,7 +479,7 @@ func TestEventDeleteFile(t *testing.T) {
 			select {
 			case event := <-w.Event:
 				if event.EventType != Remove {
-					t.Errorf("expected event to be Remove, got %v", event.EventType)
+					t.Errorf("expected event to be Remove, got %s", event.EventType)
 				}
 
 				files[event.Name()] = true
@@ -493,6 +494,7 @@ func TestEventDeleteFile(t *testing.T) {
 						t.Errorf("received no event for file %s", f)
 					}
 				}
+				return
 			}
 		}
 	}()
@@ -500,7 +502,52 @@ func TestEventDeleteFile(t *testing.T) {
 	go func() {
 		// Start the watching process.
 		if err := w.Start(time.Millisecond * 100); err != nil {
-			t.Error(err)
+			t.Fatal(err)
+		}
+	}()
+
+	wg.Wait()
+}
+
+func TestEventRenameFile(t *testing.T) {
+	testDir, teardown := setup(t)
+	defer teardown()
+
+	w := New()
+
+	// Add the testDir to the watchlist.
+	if err := w.Add(testDir); err != nil {
+		t.Fatal(err)
+	}
+
+	// Rename a file.
+	if err := os.Rename(
+		filepath.Join(testDir, "file.txt"),
+		filepath.Join(testDir, "file1.txt"),
+	); err != nil {
+		t.Error(err)
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+
+		select {
+		case event := <-w.Event:
+			if event.EventType != Rename {
+				t.Errorf("expected event to be Rename, got %s", event.EventType)
+			}
+		case <-time.After(time.Millisecond * 250):
+			t.Fatal("received no rename event")
+		}
+	}()
+
+	go func() {
+		// Start the watching process.
+		if err := w.Start(time.Millisecond * 100); err != nil {
+			t.Fatal(err)
 		}
 	}()
 
