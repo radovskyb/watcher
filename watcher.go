@@ -33,6 +33,19 @@ const (
 	Chmod
 )
 
+var eventTypes = map[EventType]string{
+	Add:    "ADD",
+	Remove: "REMOVE",
+	Modify: "MODIFY",
+	Rename: "RENAME",
+	Chmod:  "CHMOD",
+}
+
+// String prints the string version of the EventType consts
+func (e EventType) String() string {
+	return eventTypes[e]
+}
+
 // An Option is a type that is used to set options for a Watcher.
 type Option int
 
