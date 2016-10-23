@@ -29,6 +29,7 @@ go get -u github.com/radovskyb/watcher/...
 
 - Write more tests.
 - Write benchmarks.
+- Cache directory FileInfos for comparison for much faster ListFiles function.
 - Watch only specific extensions. (yes/no/maybe?)
 - Make sure renames based on modtime actually work cross platform.
 
