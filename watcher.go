@@ -350,7 +350,7 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 			numEvents++
 		}
 
-		// Check for modified files.
+		// Check for modified and chmoded files.
 		for path, file := range w.Files {
 			if w.maxEventsPerCycle > 0 && numEvents >= w.maxEventsPerCycle {
 				goto SLEEP
@@ -369,6 +369,9 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 				}
 
 				if fileList[path].Mode() != file.Mode() {
+					if w.maxEventsPerCycle > 0 && numEvents >= w.maxEventsPerCycle {
+						goto SLEEP
+					}
 					w.Event <- Event{
 						EventType: Chmod,
 						Path:      path,
@@ -378,6 +381,9 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 				}
 			}
 			if renameFound && renamedFrom.Mode() != file.Mode() {
+				if w.maxEventsPerCycle > 0 && numEvents >= w.maxEventsPerCycle {
+					goto SLEEP
+				}
 				w.Event <- Event{
 					EventType: Chmod,
 					Path:      renamedFrom.path,
