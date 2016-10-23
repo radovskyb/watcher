@@ -12,7 +12,7 @@ import (
 // setup creates all required files and folders for
 // the tests and returns a function that is used as
 // a teardown function when the tests are done.
-func setup(t *testing.T) (string, func()) {
+func setup(t testing.TB) (string, func()) {
 	testDir, err := ioutil.TempDir(".", "")
 	if err != nil {
 		t.Fatal(err)
@@ -617,4 +617,59 @@ func TestEventChmodFile(t *testing.T) {
 	}()
 
 	wg.Wait()
+}
+
+func BenchmarkEventRenameFile(b *testing.B) {
+	testDir, teardown := setup(b)
+	defer teardown()
+
+	w := New()
+
+	// Add the testDir to the watchlist.
+	if err := w.Add(testDir); err != nil {
+		b.Fatal(err)
+	}
+
+	go func() {
+		// Start the watching process.
+		if err := w.Start(time.Millisecond); err != nil {
+			b.Fatal(err)
+		}
+	}()
+
+	var filenameFrom = filepath.Join(testDir, "file.txt")
+	var filenameTo = filepath.Join(testDir, "file1.txt")
+
+	for i := 0; i < b.N; i++ {
+		// Rename a file.
+		if err := os.Rename(
+			filenameFrom,
+			filenameTo,
+		); err != nil {
+			b.Error(err)
+		}
+
+		select {
+		case event := <-w.Event:
+			if event.EventType != Rename {
+				b.Errorf("expected event to be Rename, got %s", event.EventType)
+			}
+		case <-time.After(time.Millisecond * 250):
+			b.Fatal("received no rename event")
+		}
+
+		filenameFrom, filenameTo = filenameTo, filenameFrom
+	}
+}
+
+func BenchmarkListFiles(b *testing.B) {
+	testDir, teardown := setup(b)
+	defer teardown()
+
+	for i := 0; i < b.N; i++ {
+		_, err := ListFiles(testDir)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
 }
