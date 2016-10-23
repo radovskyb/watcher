@@ -553,3 +553,68 @@ func TestEventRenameFile(t *testing.T) {
 
 	wg.Wait()
 }
+
+func TestEventChmodFile(t *testing.T) {
+	testDir, teardown := setup(t)
+	defer teardown()
+
+	w := New()
+
+	// Add the testDir to the watchlist.
+	if err := w.Add(testDir); err != nil {
+		t.Fatal(err)
+	}
+
+	files := map[string]bool{
+		"file_1.txt": false,
+		"file_2.txt": false,
+		"file_3.txt": false,
+	}
+
+	for f := range files {
+		filePath := filepath.Join(testDir, f)
+		if err := os.Chmod(filePath, os.ModePerm); err != nil {
+			t.Error(err)
+		}
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+
+		events := 0
+		for {
+			select {
+			case event := <-w.Event:
+				if event.EventType != Chmod {
+					t.Errorf("expected event to be Remove, got %s", event.EventType)
+				}
+
+				files[event.Name()] = true
+				events++
+
+				if events == len(files) {
+					return
+				}
+			case <-time.After(time.Millisecond * 250):
+				for f, e := range files {
+					if !e {
+						t.Errorf("received no event for file %s", f)
+					}
+				}
+				return
+			}
+		}
+	}()
+
+	go func() {
+		// Start the watching process.
+		if err := w.Start(time.Millisecond * 100); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	wg.Wait()
+}
