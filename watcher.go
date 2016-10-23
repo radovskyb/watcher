@@ -368,10 +368,10 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 					numEvents++
 				}
 
+				if w.maxEventsPerCycle > 0 && numEvents >= w.maxEventsPerCycle {
+					goto SLEEP
+				}
 				if fileList[path].Mode() != file.Mode() {
-					if w.maxEventsPerCycle > 0 && numEvents >= w.maxEventsPerCycle {
-						goto SLEEP
-					}
 					w.Event <- Event{
 						EventType: Chmod,
 						Path:      path,
@@ -380,10 +380,10 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 					numEvents++
 				}
 			}
+			if w.maxEventsPerCycle > 0 && numEvents >= w.maxEventsPerCycle {
+				goto SLEEP
+			}
 			if renameFound && renamedFrom.Mode() != file.Mode() {
-				if w.maxEventsPerCycle > 0 && numEvents >= w.maxEventsPerCycle {
-					goto SLEEP
-				}
 				w.Event <- Event{
 					EventType: Chmod,
 					Path:      renamedFrom.path,
