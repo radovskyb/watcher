@@ -75,16 +75,8 @@ func (e Event) String() string {
 	}
 
 	switch e.EventType {
-	case Add:
-		return fmt.Sprintf("%s %q ADD [%s]", pathType, e.Name(), e.Path)
-	case Remove:
-		return fmt.Sprintf("%s %q REMOVE [%s]", pathType, e.Name(), e.Path)
-	case Modify:
-		return fmt.Sprintf("%s %q MODIFY [%s]", pathType, e.Name(), e.Path)
-	case Rename:
-		return fmt.Sprintf("%s %q RENAME [%s]", pathType, e.Name(), e.Path)
-	case Chmod:
-		return fmt.Sprintf("%s %q CHMOD [%s]", pathType, e.Name(), e.Path)
+	case Add, Remove, Modify, Rename, Chmod:
+		return fmt.Sprintf("%s %q %s [%s]", pathType, e.Name(), e.EventType, e.Path)
 	default:
 		return "UNRECOGNIZED EVENT"
 	}
