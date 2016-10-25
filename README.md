@@ -14,6 +14,9 @@ Events contain the `os.FileInfo` of the file or directory that the event is base
 go get -u github.com/radovskyb/watcher/...
 ```
 
+# Contributing
+If you would ike to contribute, simply submit a pull request.
+
 # Features
 
 - Customizable polling interval.
