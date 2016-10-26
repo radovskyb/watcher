@@ -374,7 +374,7 @@ func TestTriggerEvent(t *testing.T) {
 		}
 	}()
 
-	w.TriggerEvent(Add, nil)
+	w.TriggerEvent(Create, nil)
 
 	wg.Wait()
 }
@@ -413,8 +413,8 @@ func TestEventAddFile(t *testing.T) {
 		for {
 			select {
 			case event := <-w.Event:
-				if event.EventType != Add {
-					t.Errorf("expected event to be Add, got %s", event.EventType)
+				if event.Op != Create {
+					t.Errorf("expected event to be Create, got %s", event.Op)
 				}
 
 				files[event.Name()] = true
@@ -478,8 +478,8 @@ func TestEventDeleteFile(t *testing.T) {
 		for {
 			select {
 			case event := <-w.Event:
-				if event.EventType != Remove {
-					t.Errorf("expected event to be Remove, got %s", event.EventType)
+				if event.Op != Remove {
+					t.Errorf("expected event to be Remove, got %s", event.Op)
 				}
 
 				files[event.Name()] = true
@@ -536,8 +536,8 @@ func TestEventRenameFile(t *testing.T) {
 
 		select {
 		case event := <-w.Event:
-			if event.EventType != Rename {
-				t.Errorf("expected event to be Rename, got %s", event.EventType)
+			if event.Op != Rename {
+				t.Errorf("expected event to be Rename, got %s", event.Op)
 			}
 		case <-time.After(time.Millisecond * 250):
 			t.Fatal("received no rename event")
@@ -588,8 +588,8 @@ func TestEventChmodFile(t *testing.T) {
 		for {
 			select {
 			case event := <-w.Event:
-				if event.EventType != Chmod {
-					t.Errorf("expected event to be Remove, got %s", event.EventType)
+				if event.Op != Chmod {
+					t.Errorf("expected event to be Remove, got %s", event.Op)
 				}
 
 				files[event.Name()] = true
@@ -651,8 +651,8 @@ func BenchmarkEventRenameFile(b *testing.B) {
 
 		select {
 		case event := <-w.Event:
-			if event.EventType != Rename {
-				b.Errorf("expected event to be Rename, got %s", event.EventType)
+			if event.Op != Rename {
+				b.Errorf("expected event to be Rename, got %s", event.Op)
 			}
 		case <-time.After(time.Millisecond * 250):
 			b.Fatal("received no rename event")

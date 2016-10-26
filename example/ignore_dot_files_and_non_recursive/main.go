@@ -32,13 +32,13 @@ func main() {
 
 				// Print out the file name with a message
 				// based on the event type.
-				switch event.EventType {
-				case watcher.Modify:
-					fmt.Println("Modified file:", event.Name())
-				case watcher.Add:
-					fmt.Println("Added file:", event.Name())
+				switch event.Op {
+				case watcher.Write:
+					fmt.Println("Wrote file:", event.Name())
+				case watcher.Create:
+					fmt.Println("Created file:", event.Name())
 				case watcher.Remove:
-					fmt.Println("Remove file:", event.Name())
+					fmt.Println("Removed file:", event.Name())
 				case watcher.Rename:
 					fmt.Println("Renamed file:", event.Name())
 				case watcher.Chmod:
