@@ -43,7 +43,10 @@ var ops = map[Op]string{
 
 // String prints the string version of the Op consts
 func (e Op) String() string {
-	return ops[e]
+	if op, found := ops[e]; found {
+		return op
+	}
+	return "UNRECOGNIZED OP"
 }
 
 // An Option is a type that is used to set options for a Watcher.
@@ -69,17 +72,14 @@ type Event struct {
 // String returns a string depending on what type of event occurred and the
 // file name associated with the event.
 func (e Event) String() string {
-	pathType := "FILE"
-	if e.IsDir() {
-		pathType = "DIRECTORY"
-	}
-
-	switch e.Op {
-	case Create, Remove, Write, Rename, Chmod:
+	if e.FileInfo != nil {
+		pathType := "FILE"
+		if e.IsDir() {
+			pathType = "DIRECTORY"
+		}
 		return fmt.Sprintf("%s %q %s [%s]", pathType, e.Name(), e.Op, e.Path)
-	default:
-		return "UNRECOGNIZED EVENT"
 	}
+	return "INVALID EVENT"
 }
 
 // A Watcher describes a file watcher.
