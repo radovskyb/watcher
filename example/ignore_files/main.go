@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	w := watcher.New(watcher.NonRecursive)
+	w := watcher.New()
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -21,23 +21,8 @@ func main() {
 		for {
 			select {
 			case event := <-w.Event:
-				// Print the event's info.
+				// Print the event.
 				fmt.Println(event)
-
-				// Print out the file name with a message
-				// based on the event type.
-				switch event.Op {
-				case watcher.Write:
-					fmt.Println("Wrote file:", event.Name())
-				case watcher.Create:
-					fmt.Println("Created file:", event.Name())
-				case watcher.Remove:
-					fmt.Println("Removed file:", event.Name())
-				case watcher.Rename:
-					fmt.Println("Renamed file:", event.Name())
-				case watcher.Chmod:
-					fmt.Println("Chmoded file:", event.Name())
-				}
 			case err := <-w.Error:
 				log.Fatalln(err)
 			}
@@ -49,9 +34,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	// Watch test_folder non-recursively for changes.
-	//
-	// Watcher won't add the file test_folder_recursive/file_recursive.txt.
+	// Watch test_folder recursively for changes.
 	if err := w.Add("../test_folder"); err != nil {
 		log.Fatalln(err)
 	}
@@ -61,6 +44,21 @@ func main() {
 	for path, f := range w.WatchedFiles() {
 		fmt.Printf("%s: %s\n", path, f.Name())
 	}
+	fmt.Println()
+
+	go func() {
+		time.Sleep(time.Second * 3)
+		// Ignore ../test_folder/test_folder_recursive and ../test_folder/.dotfile
+		if err := w.Ignore("../test_folder/test_folder_recursive", "../test_folder/.dotfile"); err != nil {
+			log.Fatalln(err)
+		}
+		// Print a list of all of the files and folders currently being watched
+		// and their paths after adding files and folders to the ignore list.
+		for path, f := range w.WatchedFiles() {
+			fmt.Printf("%s: %s\n", path, f.Name())
+		}
+		fmt.Println()
+	}()
 
 	// Start the watching process - it'll check for changes every 100ms.
 	if err := w.Start(time.Millisecond * 100); err != nil {

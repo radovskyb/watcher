@@ -58,7 +58,7 @@ func main() {
 
 	// Print a list of all of the files and folders currently
 	// being watched and their paths.
-	for path, f := range w.Files {
+	for path, f := range w.WatchedFiles() {
 		fmt.Printf("%s: %s\n", path, f.Name())
 	}
 

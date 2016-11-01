@@ -27,12 +27,12 @@ If you would ike to contribute, simply submit a pull request.
 - Trigger custom events.
 - Limit amount of events that can be received per watching cycle.
 - Choose to list the files being watched.
+- Ignore specific files and folders.
 
 # Todo
 
 - Write more tests.
 - Write benchmarks.
-- Cache directory FileInfos for comparison for much faster ListFiles function.
 - Watch only specific extensions. (yes/no/maybe?)
 - Make sure renames based on modtime actually work cross platform.
 
@@ -153,7 +153,7 @@ func main() {
 
 	// Print a list of all of the files and folders currently
 	// being watched and their paths.
-	for path, f := range w.Files {
+	for path, f := range w.WatchedFiles() {
 		fmt.Printf("%s: %s\n", path, f.Name())
 	}
 

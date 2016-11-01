@@ -102,13 +102,13 @@ func main() {
 
 	// Print a list of all of the files and folders being watched.
 	if *listFiles {
-		for path, f := range w.Files {
+		for path, f := range w.WatchedFiles() {
 			fmt.Printf("%s: %s\n", path, f.Name())
 		}
 		fmt.Println()
 	}
 
-	fmt.Printf("Watching %d files\n", len(w.Files))
+	fmt.Printf("Watching %d files\n", len(w.WatchedFiles()))
 
 	// Parse the interval string into a time.Duration.
 	parsedInterval, err := time.ParseDuration(*interval)
