@@ -180,6 +180,14 @@ func (fs *fileInfo) Sys() interface{} {
 // Add adds either a single file or recursed directory to
 // the Watcher's file list.
 func (w *Watcher) Add(name string) error {
+	if name == "." || name == ".." {
+		var err error
+		name, err = filepath.Abs(filepath.Clean(name))
+		if err != nil {
+			return err
+		}
+	}
+
 	// Add the name from w's names list.
 	w.mu.Lock()
 	w.names = append(w.names, name)
@@ -217,6 +225,14 @@ func (w *Watcher) Add(name string) error {
 // Remove removes either a single file or recursed directory from
 // the Watcher's file list.
 func (w *Watcher) Remove(name string) error {
+	if name == "." || name == ".." {
+		var err error
+		name, err = filepath.Abs(filepath.Clean(name))
+		if err != nil {
+			return err
+		}
+	}
+
 	// Remove the name from w's names list.
 	w.mu.Lock()
 	for i := range w.names {
