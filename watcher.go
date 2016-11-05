@@ -182,7 +182,7 @@ func (fs *fileInfo) Sys() interface{} {
 func (w *Watcher) Add(name string) error {
 	if name == "." || name == ".." {
 		var err error
-		name, err = filepath.Abs(filepath.Clean(name))
+		name, err = filepath.Abs(name)
 		if err != nil {
 			return err
 		}
