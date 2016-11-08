@@ -35,6 +35,7 @@ If you would ike to contribute, simply submit a pull request.
 - Write benchmarks.
 - Rewrite `Start` method.
 - Add `Close` method.
+- Fix `Remove` method so that it can still remove a directory that was already deleted.
 - Watch only specific extensions. (yes/no/maybe?)
 - Make sure renames based on modtime actually work cross platform.
 
