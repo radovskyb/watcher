@@ -298,14 +298,16 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 
 	for {
 		fileList := make(map[string]os.FileInfo)
-		for _, name := range w.names {
+		for i, name := range w.names {
 			// Retrieve the list of os.FileInfo's from w.Name.
 			list, err := ListFiles(name, w.ignored, w.options...)
 			if err != nil {
 				if os.IsNotExist(err) {
 					w.Error <- ErrWatchedFileDeleted
-					// TODO: remove and continue if there is still
-					// more than 1 file left after removal.
+					w.mu.Lock()
+					w.names = append(w.names[:i], w.names[i+1:]...)
+					w.mu.Unlock()
+					continue
 				} else {
 					w.Error <- err
 				}
@@ -313,6 +315,9 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 			for k, v := range list {
 				fileList[k] = v
 			}
+		}
+		if len(fileList) < 1 {
+			return ErrNothingAdded
 		}
 
 		numEvents := 0

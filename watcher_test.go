@@ -480,8 +480,8 @@ func TestIgnoreFiles(t *testing.T) {
 
 	go func() {
 		// Start the watching process.
-		if err := w.Start(time.Millisecond * 100); err != nil {
-			t.Fatal(err)
+		if err := w.Start(time.Millisecond * 100); err != ErrNothingAdded {
+			t.Fatal("expected ErrNothingAdded error")
 		}
 	}()
 
