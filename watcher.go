@@ -316,9 +316,6 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 				fileList[k] = v
 			}
 		}
-		if len(fileList) < 1 {
-			return ErrNothingAdded
-		}
 
 		numEvents := 0
 
