@@ -113,6 +113,7 @@ func New(options ...Option) *Watcher {
 func (w *Watcher) Ignore(paths ...string) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
+
 	for _, path := range paths {
 		fInfo, err := os.Stat(path)
 		if err != nil {
@@ -180,6 +181,9 @@ func (fs *fileInfo) Sys() interface{} {
 // Add adds either a single file or recursed directory to
 // the Watcher's file list.
 func (w *Watcher) Add(name string) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
 	if name == "." || name == ".." {
 		var err error
 		name, err = filepath.Abs(name)
@@ -188,10 +192,10 @@ func (w *Watcher) Add(name string) error {
 		}
 	}
 
+	name = filepath.Clean(name)
+
 	// Add the name from w's names list.
-	w.mu.Lock()
 	w.names = append(w.names, name)
-	w.mu.Unlock()
 
 	// Make sure name exists.
 	fInfo, err := os.Stat(name)
@@ -203,9 +207,7 @@ func (w *Watcher) Add(name string) error {
 	// add it and return.
 	_, ignored := w.ignored[name]
 	if !fInfo.IsDir() && !ignored {
-		w.mu.Lock()
 		w.files[fInfo.Name()] = fInfo
-		w.mu.Unlock()
 		return nil
 	}
 
@@ -214,60 +216,50 @@ func (w *Watcher) Add(name string) error {
 	if err != nil {
 		return err
 	}
-	w.mu.Lock()
 	for k, v := range fInfoList {
 		w.files[k] = v
 	}
-	w.mu.Unlock()
 	return nil
 }
 
 // Remove removes either a single file or recursed directory from
 // the Watcher's file list.
-func (w *Watcher) Remove(name string) error {
+func (w *Watcher) Remove(name string) (err error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
 	if name == "." || name == ".." {
-		var err error
 		name, err = filepath.Abs(name)
 		if err != nil {
 			return err
 		}
 	}
 
+	name = filepath.Clean(name)
+
 	// Remove the name from w's names list.
-	w.mu.Lock()
 	for i := range w.names {
 		if w.names[i] == name {
 			w.names = append(w.names[:i], w.names[i+1:]...)
 		}
 	}
-	w.mu.Unlock()
-
-	// Make sure name exists.
-	fInfo, err := os.Stat(name)
-	if err != nil {
-		return err
-	}
 
 	// If name is a single file, remove it and return.
-	if !fInfo.IsDir() {
-		w.mu.Lock()
-		delete(w.files, fInfo.Name())
-		w.mu.Unlock()
+	info, found := w.files[name]
+	if !found {
+		return nil // Doesn't exist, just return
+	}
+	if !info.IsDir() {
+		delete(w.files, name)
 		return nil
 	}
 
-	// Retrieve a list of all of the os.FileInfo's to delete from w.files.
-	fInfoList, err := ListFiles(name, w.ignored, w.options...)
-	if err != nil {
-		return err
+	// If it's a directory, delete all of it's contents from w.files.
+	for path := range w.files {
+		if strings.HasPrefix(path, name) {
+			delete(w.files, path)
+		}
 	}
-
-	// Remove the appropriate os.FileInfo's from w's os.FileInfo list.
-	w.mu.Lock()
-	for path := range fInfoList {
-		delete(w.files, path)
-	}
-	w.mu.Unlock()
 	return nil
 }
 
@@ -298,15 +290,15 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 
 	for {
 		fileList := make(map[string]os.FileInfo)
-		for i, name := range w.names {
+		for _, name := range w.names {
 			// Retrieve the list of os.FileInfo's from w.Name.
 			list, err := ListFiles(name, w.ignored, w.options...)
 			if err != nil {
 				if os.IsNotExist(err) {
 					w.Error <- ErrWatchedFileDeleted
-					w.mu.Lock()
-					w.names = append(w.names[:i], w.names[i+1:]...)
-					w.mu.Unlock()
+					if err := w.Remove(name); err != nil {
+						return err
+					}
 					continue
 				} else {
 					w.Error <- err
@@ -436,7 +428,9 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 
 	SLEEP:
 		// Update w.files and then sleep for a little bit.
+		w.mu.Lock()
 		w.files = fileList
+		w.mu.Unlock()
 		time.Sleep(pollInterval)
 	}
 }
