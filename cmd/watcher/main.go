@@ -88,6 +88,10 @@ func main() {
 					}
 				}
 			case err := <-w.Error:
+				if err == watcher.ErrWatchedFileDeleted {
+					fmt.Println(err)
+					continue
+				}
 				log.Fatalln(err)
 			}
 		}
