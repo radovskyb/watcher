@@ -111,25 +111,13 @@ func New(options ...Option) *Watcher {
 
 // Ignore adds paths that should be ignored by the watcher.
 func (w *Watcher) Ignore(paths ...string) error {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-
 	for _, path := range paths {
-		fInfo, err := os.Stat(path)
-		if err != nil {
+		if err := w.Remove(path); err != nil {
 			return err
 		}
-		if fInfo.IsDir() {
-			fInfoList, err := ListFiles(path, nil)
-			if err != nil {
-				return err
-			}
-			for k, _ := range fInfoList {
-				delete(w.files, k)
-			}
-		}
-		delete(w.files, path)
+		w.mu.Lock()
 		w.ignored[path] = struct{}{}
+		w.mu.Unlock()
 	}
 	return nil
 }
@@ -180,12 +168,11 @@ func (fs *fileInfo) Sys() interface{} {
 
 // Add adds either a single file or recursed directory to
 // the Watcher's file list.
-func (w *Watcher) Add(name string) error {
+func (w *Watcher) Add(name string) (err error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
 	if name == "." || name == ".." {
-		var err error
 		name, err = filepath.Abs(name)
 		if err != nil {
 			return err
