@@ -124,6 +124,9 @@ func (w *Watcher) Ignore(paths ...string) error {
 
 // WatchedFiles returns a map of all the files being watched.
 func (w *Watcher) WatchedFiles() map[string]os.FileInfo {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
 	return w.files
 }
 
