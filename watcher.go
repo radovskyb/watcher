@@ -18,6 +18,9 @@ var (
 	// ErrWatchedFileDeleted is an error that occurs when a file or folder that was
 	// being watched has been deleted.
 	ErrWatchedFileDeleted = errors.New("error: watched file or folder deleted")
+
+	// ErrWatcherClosed is sent through w.Errors when a Watcher is closed.
+	ErrWatcherClosed = errors.New("error: watcher was closed")
 )
 
 // An Op is a type that is used to describe what type
@@ -90,6 +93,7 @@ type Watcher struct {
 	options []Option
 
 	mu        *sync.Mutex
+	running   bool
 	files     map[string]os.FileInfo
 	ignored   map[string]struct{}
 	names     []string
@@ -267,6 +271,23 @@ type renamedFrom struct {
 	os.FileInfo
 }
 
+// Close removes all watched files from the watcher and will cause Start to
+// finish watching after the current watching cycle is done.
+func (w *Watcher) Close() error {
+	w.mu.Lock()
+	if !w.running {
+		w.mu.Unlock()
+		return nil
+	}
+	w.running = false
+	w.Error <- ErrWatcherClosed
+	for k, _ := range w.files {
+		delete(w.files, k)
+	}
+	w.mu.Unlock()
+	return nil
+}
+
 // Start starts the watching process and checks for changes every `pollInterval` duration.
 // If pollInterval is 0, the default is 100ms.
 func (w *Watcher) Start(pollInterval time.Duration) error {
@@ -278,7 +299,18 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 		return ErrNothingAdded
 	}
 
+	w.mu.Lock()
+	w.running = true
+	w.mu.Unlock()
+
 	for {
+		w.mu.Lock()
+
+		if !w.running {
+			w.mu.Unlock()
+			return nil
+		}
+
 		fileList := make(map[string]os.FileInfo)
 		for _, name := range w.names {
 			// Retrieve the list of os.FileInfo's from w.Name.
@@ -287,6 +319,7 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 				if os.IsNotExist(err) {
 					w.Error <- ErrWatchedFileDeleted
 					if err := w.Remove(name); err != nil {
+						w.mu.Unlock()
 						return err
 					}
 					continue
@@ -418,7 +451,6 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 
 	SLEEP:
 		// Update w.files and then sleep for a little bit.
-		w.mu.Lock()
 		w.files = fileList
 		w.mu.Unlock()
 		time.Sleep(pollInterval)
