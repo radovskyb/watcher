@@ -271,8 +271,9 @@ type renamedFrom struct {
 	os.FileInfo
 }
 
-// Close removes all watched files from the watcher and will cause Start to
-// finish watching after the current watching cycle is done.
+// Close removes all watched files from the watcher and causes Start to
+// stop watching and return after the current watching cycle finishes if
+// one is currently running.
 func (w *Watcher) Close() error {
 	w.mu.Lock()
 	if !w.running {
@@ -284,6 +285,7 @@ func (w *Watcher) Close() error {
 	for k, _ := range w.files {
 		delete(w.files, k)
 	}
+	w.names = []string{}
 	w.mu.Unlock()
 	return nil
 }
