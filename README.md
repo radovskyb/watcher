@@ -34,8 +34,6 @@ If you would ike to contribute, simply submit a pull request.
 - Write more tests.
 - Write benchmarks.
 - Rewrite `Start` method.
-- Add `Close` method.
-- Watch only specific extensions. (yes/no/maybe?)
 - Make sure renames based on modtime actually work cross platform.
 
 # Command
