@@ -4,9 +4,9 @@
 
 `watcher` is a simple Go package for watching for files or directory changes (recursively by default) without using filesystem events, which allows it to work cross platform consistently.
 
-`watcher` watches for changes and notifies over channels either anytime an event or an error has occured.
+`watcher` watches for changes and notifies over channels either anytime an event or an error has occurred.
 
-Events contain the `os.FileInfo` of the file or directory that the event is based on and the type of event that has occured.
+Events contain the `os.FileInfo` of the file or directory that the event is based on and the type of event that has occurred.
 
 # Installation
 
