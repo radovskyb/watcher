@@ -29,7 +29,7 @@ type Op uint32
 
 // Ops
 const (
-	Create Op = 1 << iota
+	Create Op = iota
 	Write
 	Remove
 	Rename
