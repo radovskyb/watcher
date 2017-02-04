@@ -264,7 +264,9 @@ func (w *Watcher) Remove(name string) (err error) {
 
 // TriggerEvent is a method that can be used to trigger an event, separate to
 // the file watching process.
+// This function mandatory wait when the watcher started
 func (w *Watcher) TriggerEvent(eventType Op, file os.FileInfo) {
+	w.Wait()
 	if file == nil {
 		file = &fileInfo{name: "triggered event", modTime: time.Now()}
 	}
