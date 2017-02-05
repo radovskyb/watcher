@@ -547,11 +547,17 @@ func (w *Watcher) Start2(pollInterval time.Duration) error {
 }
 
 func (w *Watcher) handler(pollInterval time.Duration) {
-	var p _fileInfo
+	var f _fileInfo
 	for {
 		select {
-		case p = <- w.pipeline:
+		case f = <-w.pipeline:
+		// check name in previous files
+			if fileInfo, found := w.files[f.key]; found {
+				// check Write and Chmode
+				println(fileInfo[""].Name())
+			} else {
 
+			}
 		}
 	}
 }
