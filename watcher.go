@@ -504,6 +504,10 @@ func (p *Watcher) renameEvts(dir string, created, removed map[string]os.FileInfo
 	return renames
 }
 
+func (w *Watcher) Start2(pollInterval time.Duration) error {
+	return
+}
+
 // Start begins the polling cycle which repeats every specified
 // duration until Close is called.
 func (p *Watcher) Start(d time.Duration) error {
