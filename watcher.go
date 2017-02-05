@@ -541,6 +541,7 @@ func (w *Watcher) Start2(pollInterval time.Duration) error {
 		select {
 		case <-tick:
 			w.created = []_fileInfo{}
+			w.wg.Wait()
 		case <-w.close:
 			return
 		}
@@ -561,6 +562,7 @@ func (w *Watcher) handler(pollInterval time.Duration) {
 			} else {
 				w.created = append(w.created, f)
 			}
+			w.wg.Done()
 		}
 	}
 }
@@ -592,6 +594,7 @@ func (p *Watcher) retrieveFileList2() {
 				fileList[k] = v
 				for _k, _v := range list {
 					p.pipeline <- _fileInfo{_k, _v}
+					p.Add(1)
 				}
 			}
 			continue
