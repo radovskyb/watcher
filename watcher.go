@@ -526,9 +526,7 @@ func (w *Watcher) Start2(pollInterval time.Duration) error {
 	return
 }
 
-func (p *Watcher) retrieveFileList2() map[string]map[string]os.FileInfo {
-	p.mu.Lock()
-	defer p.mu.Unlock()
+func (p *Watcher) retrieveFileList2() {
 
 	fileList := make(map[string]map[string]os.FileInfo)
 
@@ -564,7 +562,7 @@ func (p *Watcher) retrieveFileList2() map[string]map[string]os.FileInfo {
 		}
 	}
 
-	return fileList
+	p.files = fileList
 }
 
 
