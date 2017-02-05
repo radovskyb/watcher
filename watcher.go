@@ -83,25 +83,38 @@ type Watcher struct {
 	Error  chan error
 	Closed chan struct{}
 	close  chan struct{}
+	pipeline  chan _fileInfo
 
 	// mu protects the following.
 	mu           *sync.Mutex
+	wg           *sync.WaitGroup
 	running      bool
 	names        map[string]bool                   // bool for recursive or not.
 	files        map[string]map[string]os.FileInfo // dir to map of files.
 	ignored      map[string]struct{}
 	ignoreHidden bool // ignore hidden files or not.
 	maxEvents    int
+	created map[string]os.FileInfo
+	removed map[string]os.FileInfo
 }
 
-// New creates a new Watcher.
+type _fileInfo struct {
+	key string
+	value os.FileInfo
+}
+
+// New creates a new Watcher
+// and set a block for gorutines which shouldn't be started before watcher
 func New() *Watcher {
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
 	return &Watcher{
 		Event:   make(chan Event),
 		Error:   make(chan error),
 		Closed:  make(chan struct{}),
 		close:   make(chan struct{}),
 		mu:      new(sync.Mutex),
+		wg:      wg,
 		files:   make(map[string]map[string]os.FileInfo),
 		ignored: make(map[string]struct{}),
 		names:   make(map[string]bool),
@@ -161,6 +174,7 @@ func (p *Watcher) list(name string) (map[string]map[string]os.FileInfo, error) {
 			continue
 		}
 		fileList[name][fInfo.Name()] = fInfo
+		// TODO data in pipeline should be sent here
 	}
 	return fileList, nil
 }
@@ -503,6 +517,128 @@ func (p *Watcher) renameEvts(dir string, created, removed map[string]os.FileInfo
 	}
 	return renames
 }
+
+func (w *Watcher) Close2() {
+	w.close <-1
+}
+
+// Wait blocks until the watcher started.
+func (w *Watcher) Wait() {
+	w.wg.Wait()
+}
+
+func (w *Watcher) Start2(pollInterval time.Duration) error {
+	if pollInterval < time.Millisecond {
+		return ErrDurationTooShort
+	}
+	if pollInterval <= 0 {
+		pollInterval = time.Millisecond * 100
+	}
+	tick := time.Tick(pollInterval)
+
+	w.wg.Done()
+	// buffer is obligatory!
+	// 2000 just random for now
+	w.pipeline = make(chan _fileInfo, 2000)
+	// don't know really how many gorutines should be inited
+	// maybe runtime.NumCPU()
+	for i := 0; i < 4; i++ {
+		go w.handler()
+	}
+	for {
+		select {
+		case <-tick:
+			w.retrieveFileList2()
+			w.created = map[string]os.FileInfo{}
+			w.removed = w.files // should be links
+			w.wg.Wait()
+			// RENAMED, REMOVED, CREATED
+		// it should be sync operation I think
+		// RENAMED
+		// compare w.created and rest of items in w.files
+		// if event exist delete() item from both maps
+		// REMOVED
+		// check rest of items in w.files
+		// CREATED
+		// created check w.created
+				w.Event <- Event{}
+
+		case <-w.close:
+			close(w.pipeline)
+			return
+		}
+	}
+	return
+}
+
+func (w *Watcher) handler() {
+	var f _fileInfo
+	var ok bool
+	for {
+		f, ok = <-w.pipeline
+		if ok {
+			// check name in previous files
+			if fileInfo, found := w.files[f.key]; found {
+				// check Write and Chmode
+				// CHANGED
+				println(fileInfo[""].Name())
+				w.Event <- Event{}
+				delete(w.files, f.key)
+			} else {
+				w.created[f.key] = f.value
+			}
+			w.wg.Done()
+
+		} else {
+			return
+		}
+	}
+}
+
+func (p *Watcher) retrieveFileList2() {
+
+	fileList := make(map[string]map[string]os.FileInfo)
+
+	for name, recursive := range p.names {
+		if recursive {
+			list, err := p.listRecursive(name)
+			if err == nil {
+				for k, v := range list {
+					fileList[k] = v
+				}
+				continue
+			}
+			if os.IsNotExist(err) {
+				p.Error <- ErrWatchedFileDeleted
+				p.RemoveRecursive(name)
+			} else {
+				p.Error <- err
+			}
+			continue
+		}
+		list, err := p.list(name)
+		if err == nil {
+			for k, v := range list {
+				fileList[k] = v
+				for _k, _v := range list {
+					p.pipeline <- _fileInfo{_k, _v}
+					p.Add(1)
+				}
+			}
+			continue
+		}
+		if os.IsNotExist(err) {
+			p.Error <- ErrWatchedFileDeleted
+			p.Remove(name)
+		} else {
+			p.Error <- err
+		}
+	}
+	p.removed = p.files
+	p.files = fileList
+}
+
+
 
 // Start begins the polling cycle which repeats every specified
 // duration until Close is called.
