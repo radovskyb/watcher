@@ -537,7 +537,14 @@ func (w *Watcher) Start2(pollInterval time.Duration) error {
 	tick := time.Tick(pollInterval)
 
 	w.wg.Done()
-
+	// buffer is obligatory!
+	// 2000 just random for now
+	w.pipeline = make(chan _fileInfo, 2000)
+	// don't know really how many gorutines should be inited
+	// maybe runtime.NumCPU()
+	for i := 0; i < 4; i++ {
+		go w.handler()
+	}
 	for {
 		select {
 		case <-tick:
@@ -554,6 +561,7 @@ func (w *Watcher) Start2(pollInterval time.Duration) error {
 		// check rest of items in w.files
 		// CREATED
 		// created check w.created
+				w.Event <- Event{}
 
 		case <-w.close:
 			close(w.pipeline)
@@ -563,7 +571,7 @@ func (w *Watcher) Start2(pollInterval time.Duration) error {
 	return
 }
 
-func (w *Watcher) handler(pollInterval time.Duration) {
+func (w *Watcher) handler() {
 	var f _fileInfo
 	var ok bool
 	for {
@@ -574,6 +582,7 @@ func (w *Watcher) handler(pollInterval time.Duration) {
 				// check Write and Chmode
 				// CHANGED
 				println(fileInfo[""].Name())
+				w.Event <- Event{}
 				delete(w.files, f.key)
 			} else {
 				w.created[f.key] = f.value
