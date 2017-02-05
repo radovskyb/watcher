@@ -511,7 +511,11 @@ func (w *Watcher) Start2(pollInterval time.Duration) error {
 	if pollInterval <= 0 {
 		pollInterval = time.Millisecond * 100
 	}
+	for {
+		select {
 
+		}
+	}
 	return
 }
 
