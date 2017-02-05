@@ -83,6 +83,7 @@ type Watcher struct {
 	Error  chan error
 	Closed chan struct{}
 	close  chan struct{}
+	pipeline  chan struct{}
 
 	// mu protects the following.
 	mu           *sync.Mutex
@@ -551,6 +552,7 @@ func (p *Watcher) retrieveFileList2() {
 		if err == nil {
 			for k, v := range list {
 				fileList[k] = v
+				p.pipeline <- v
 			}
 			continue
 		}
