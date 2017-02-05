@@ -526,6 +526,49 @@ func (w *Watcher) Start2(pollInterval time.Duration) error {
 	return
 }
 
+func (p *Watcher) retrieveFileList2() map[string]map[string]os.FileInfo {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	fileList := make(map[string]map[string]os.FileInfo)
+
+	for name, recursive := range p.names {
+		if recursive {
+			list, err := p.listRecursive(name)
+			if err == nil {
+				for k, v := range list {
+					fileList[k] = v
+				}
+				continue
+			}
+			if os.IsNotExist(err) {
+				p.Error <- ErrWatchedFileDeleted
+				p.RemoveRecursive(name)
+			} else {
+				p.Error <- err
+			}
+			continue
+		}
+		list, err := p.list(name)
+		if err == nil {
+			for k, v := range list {
+				fileList[k] = v
+			}
+			continue
+		}
+		if os.IsNotExist(err) {
+			p.Error <- ErrWatchedFileDeleted
+			p.Remove(name)
+		} else {
+			p.Error <- err
+		}
+	}
+
+	return fileList
+}
+
+
+
 // Start begins the polling cycle which repeats every specified
 // duration until Close is called.
 func (p *Watcher) Start(d time.Duration) error {
