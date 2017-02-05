@@ -94,6 +94,7 @@ type Watcher struct {
 	ignored      map[string]struct{}
 	ignoreHidden bool // ignore hidden files or not.
 	maxEvents    int
+	created []_fileInfo
 }
 
 type _fileInfo struct {
@@ -539,6 +540,7 @@ func (w *Watcher) Start2(pollInterval time.Duration) error {
 	for {
 		select {
 		case <-tick:
+			w.created = []_fileInfo{}
 		case <-w.close:
 			return
 		}
@@ -555,8 +557,9 @@ func (w *Watcher) handler(pollInterval time.Duration) {
 			if fileInfo, found := w.files[f.key]; found {
 				// check Write and Chmode
 				println(fileInfo[""].Name())
+				delete(w.files, f.key)
 			} else {
-
+				w.created = append(w.created, f)
 			}
 		}
 	}
