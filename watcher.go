@@ -505,6 +505,13 @@ func (p *Watcher) renameEvts(dir string, created, removed map[string]os.FileInfo
 }
 
 func (w *Watcher) Start2(pollInterval time.Duration) error {
+	if pollInterval < time.Millisecond {
+		return ErrDurationTooShort
+	}
+	if pollInterval <= 0 {
+		pollInterval = time.Millisecond * 100
+	}
+
 	return
 }
 
