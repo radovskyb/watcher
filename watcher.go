@@ -570,7 +570,9 @@ func (p *Watcher) retrieveFileList2() {
 		if err == nil {
 			for k, v := range list {
 				fileList[k] = v
-				p.pipeline <- v
+				for _k, _v := range list {
+					p.pipeline <- _fileInfo{_k, _v}
+				}
 			}
 			continue
 		}
