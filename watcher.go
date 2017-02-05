@@ -511,9 +511,10 @@ func (w *Watcher) Start2(pollInterval time.Duration) error {
 	if pollInterval <= 0 {
 		pollInterval = time.Millisecond * 100
 	}
+	tick := time.Tick(pollInterval)
 	for {
 		select {
-
+		case <-tick:
 		}
 	}
 	return
