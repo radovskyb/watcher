@@ -94,7 +94,8 @@ type Watcher struct {
 	ignored      map[string]struct{}
 	ignoreHidden bool // ignore hidden files or not.
 	maxEvents    int
-	created []_fileInfo
+	created map[string]os.FileInfo
+	removed map[string]os.FileInfo
 }
 
 type _fileInfo struct {
@@ -540,8 +541,20 @@ func (w *Watcher) Start2(pollInterval time.Duration) error {
 	for {
 		select {
 		case <-tick:
-			w.created = []_fileInfo{}
+			w.retrieveFileList2()
+			w.created = map[string]os.FileInfo{}
+			w.removed = w.files // should be links
 			w.wg.Wait()
+			// RENAMED, REMOVED, CREATED
+		// it should be sync operation I think
+		// RENAMED
+		// compare w.created and rest of items in w.files
+		// if event exist delete() item from both maps
+		// REMOVED
+		// check rest of items in w.files
+		// CREATED
+		// created check w.created
+
 		case <-w.close:
 			close(w.pipeline)
 			return
@@ -559,10 +572,11 @@ func (w *Watcher) handler(pollInterval time.Duration) {
 			// check name in previous files
 			if fileInfo, found := w.files[f.key]; found {
 				// check Write and Chmode
+				// CHANGED
 				println(fileInfo[""].Name())
 				delete(w.files, f.key)
 			} else {
-				w.created = append(w.created, f)
+				w.created[f.key] = f.value
 			}
 			w.wg.Done()
 
@@ -611,7 +625,7 @@ func (p *Watcher) retrieveFileList2() {
 			p.Error <- err
 		}
 	}
-
+	p.removed = p.files
 	p.files = fileList
 }
 
