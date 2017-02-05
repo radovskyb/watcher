@@ -87,6 +87,7 @@ type Watcher struct {
 
 	// mu protects the following.
 	mu           *sync.Mutex
+	wg           *sync.WaitGroup
 	running      bool
 	names        map[string]bool                   // bool for recursive or not.
 	files        map[string]map[string]os.FileInfo // dir to map of files.
@@ -95,14 +96,18 @@ type Watcher struct {
 	maxEvents    int
 }
 
-// New creates a new Watcher.
+// New creates a new Watcher
+// and set a block for gorutines which shouldn't be started before watcher
 func New() *Watcher {
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
 	return &Watcher{
 		Event:   make(chan Event),
 		Error:   make(chan error),
 		Closed:  make(chan struct{}),
 		close:   make(chan struct{}),
 		mu:      new(sync.Mutex),
+		wg:      wg,
 		files:   make(map[string]map[string]os.FileInfo),
 		ignored: make(map[string]struct{}),
 		names:   make(map[string]bool),
@@ -509,6 +514,11 @@ func (w *Watcher) Close2() {
 	w.close <-1
 }
 
+// Wait blocks until the watcher started.
+func (w *Watcher) Wait() {
+	w.wg.Wait()
+}
+
 func (w *Watcher) Start2(pollInterval time.Duration) error {
 	if pollInterval < time.Millisecond {
 		return ErrDurationTooShort
@@ -517,6 +527,9 @@ func (w *Watcher) Start2(pollInterval time.Duration) error {
 		pollInterval = time.Millisecond * 100
 	}
 	tick := time.Tick(pollInterval)
+
+	w.wg.Done()
+
 	for {
 		select {
 		case <-tick:
