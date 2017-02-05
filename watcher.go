@@ -546,6 +546,16 @@ func (w *Watcher) Start2(pollInterval time.Duration) error {
 	return
 }
 
+func (w *Watcher) handler(pollInterval time.Duration) {
+	var p _fileInfo
+	for {
+		select {
+		case p = <- w.pipeline:
+
+		}
+	}
+}
+
 func (p *Watcher) retrieveFileList2() {
 
 	fileList := make(map[string]map[string]os.FileInfo)
