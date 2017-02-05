@@ -172,6 +172,7 @@ func (p *Watcher) list(name string) (map[string]map[string]os.FileInfo, error) {
 			continue
 		}
 		fileList[name][fInfo.Name()] = fInfo
+		// TODO data in pipeline should be sent here
 	}
 	return fileList, nil
 }
