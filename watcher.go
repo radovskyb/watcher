@@ -83,7 +83,7 @@ type Watcher struct {
 	Error  chan error
 	Closed chan struct{}
 	close  chan struct{}
-	pipeline  chan struct{}
+	pipeline  chan _fileInfo
 
 	// mu protects the following.
 	mu           *sync.Mutex
@@ -94,6 +94,11 @@ type Watcher struct {
 	ignored      map[string]struct{}
 	ignoreHidden bool // ignore hidden files or not.
 	maxEvents    int
+}
+
+type _fileInfo struct {
+	key string
+	value os.FileInfo
 }
 
 // New creates a new Watcher
