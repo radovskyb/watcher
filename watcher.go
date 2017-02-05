@@ -543,6 +543,7 @@ func (w *Watcher) Start2(pollInterval time.Duration) error {
 			w.created = []_fileInfo{}
 			w.wg.Wait()
 		case <-w.close:
+			close(w.pipeline)
 			return
 		}
 	}
@@ -551,10 +552,11 @@ func (w *Watcher) Start2(pollInterval time.Duration) error {
 
 func (w *Watcher) handler(pollInterval time.Duration) {
 	var f _fileInfo
+	var ok bool
 	for {
-		select {
-		case f = <-w.pipeline:
-		// check name in previous files
+		f, ok = <-w.pipeline
+		if ok {
+			// check name in previous files
 			if fileInfo, found := w.files[f.key]; found {
 				// check Write and Chmode
 				println(fileInfo[""].Name())
@@ -563,6 +565,9 @@ func (w *Watcher) handler(pollInterval time.Duration) {
 				w.created = append(w.created, f)
 			}
 			w.wg.Done()
+
+		} else {
+			return
 		}
 	}
 }
