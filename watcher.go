@@ -504,6 +504,10 @@ func (p *Watcher) renameEvts(dir string, created, removed map[string]os.FileInfo
 	return renames
 }
 
+func (w *Watcher) Close2() {
+	w.close <-1
+}
+
 func (w *Watcher) Start2(pollInterval time.Duration) error {
 	if pollInterval < time.Millisecond {
 		return ErrDurationTooShort
@@ -515,6 +519,8 @@ func (w *Watcher) Start2(pollInterval time.Duration) error {
 	for {
 		select {
 		case <-tick:
+		case <-w.close:
+			return
 		}
 	}
 	return
