@@ -363,11 +363,8 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 				goto SLEEP
 			}
 			for path2, file2 := range events[Remove] {
-				if file1.Size() == file2.Size() && path1 != path2 &&
-					filepath.Dir(path1) == filepath.Dir(path2) &&
-					file1.IsDir() == file2.IsDir() &&
-					file1.ModTime() == file2.ModTime() { // TODO: Check this <--
-					renamed[path2] = renamedFrom{path1, file1}
+				renamed[path2] = renamedFrom{path1, file1}
+				if os.SameFile(file1, file2) {
 					w.Event <- Event{
 						Op:       Rename,
 						Path:     path2,
