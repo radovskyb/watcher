@@ -93,6 +93,7 @@ type Watcher struct {
 	options []Option
 
 	mu        *sync.Mutex
+	wg        *sync.WaitGroup
 	running   bool
 	files     map[string]os.FileInfo
 	ignored   map[string]struct{}
@@ -101,12 +102,16 @@ type Watcher struct {
 }
 
 // New returns a new initialized *Watcher.
+// and set a block for gorutines which shouldn't be started before watcher
 func New(options ...Option) *Watcher {
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
 	return &Watcher{
 		Event:   make(chan Event),
 		Error:   make(chan error),
 		options: options,
 		mu:      new(sync.Mutex),
+		wg:      wg,
 		files:   make(map[string]os.FileInfo),
 		ignored: make(map[string]struct{}),
 		names:   []string{},
@@ -259,7 +264,9 @@ func (w *Watcher) Remove(name string) (err error) {
 
 // TriggerEvent is a method that can be used to trigger an event, separate to
 // the file watching process.
+// This function mandatory wait when the watcher started
 func (w *Watcher) TriggerEvent(eventType Op, file os.FileInfo) {
+	w.Wait()
 	if file == nil {
 		file = &fileInfo{name: "triggered event", modTime: time.Now()}
 	}
@@ -290,6 +297,11 @@ func (w *Watcher) Close() error {
 	return nil
 }
 
+// Wait blocks until the watcher started.
+func (w *Watcher) Wait() {
+	w.wg.Wait()
+}
+
 // Start starts the watching process and checks for changes every `pollInterval` duration.
 // If pollInterval is 0, the default is 100ms.
 func (w *Watcher) Start(pollInterval time.Duration) error {
@@ -304,6 +316,8 @@ func (w *Watcher) Start(pollInterval time.Duration) error {
 	w.mu.Lock()
 	w.running = true
 	w.mu.Unlock()
+
+	w.wg.Done()
 
 	for {
 		w.mu.Lock()
