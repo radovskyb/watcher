@@ -475,23 +475,21 @@ func (w *Watcher) Start(d time.Duration) error {
 						continue
 					}
 				}
-				if w.maxEvents > 0 && numEvents == w.maxEvents {
+				numEvents++
+				if w.maxEvents > 0 && numEvents > w.maxEvents {
 					close(cancel)
 					break inner
 				}
-				numEvents++
 				w.Event <- event
 			case <-done: // Current cycle is finished.
 				break inner
 			}
 		}
 
-		// If there was at least one event, update the file's list.
-		if numEvents > 0 {
-			w.mu.Lock()
-			w.files = fileList
-			w.mu.Unlock()
-		}
+		// Update the file's list.
+		w.mu.Lock()
+		w.files = fileList
+		w.mu.Unlock()
 
 		// Sleep and then continue to the next loop iteration.
 		time.Sleep(d)
