@@ -51,7 +51,12 @@ func setup(t testing.TB) (string, func()) {
 		t.Fatal(err)
 	}
 
-	return testDir, func() {
+	abs, err := filepath.Abs(testDir)
+	if err != nil {
+		os.RemoveAll(testDir)
+		t.Fatal(err)
+	}
+	return abs, func() {
 		if os.RemoveAll(testDir); err != nil {
 			t.Fatal(err)
 		}
@@ -62,7 +67,7 @@ func TestSetNonRecursive(t *testing.T) {
 	testDir, teardown := setup(t)
 	defer teardown()
 
-	w := New(NonRecursive)
+	w := New()
 
 	if err := w.Add(testDir); err != nil {
 		t.Fatal(err)
@@ -72,17 +77,16 @@ func TestSetNonRecursive(t *testing.T) {
 		t.Errorf("expected len(w.files) to be 7, got %d", len(w.files))
 	}
 
-	// Make sure w.names[0] is now equal to testDir.
-	if w.names[0] != testDir {
-		t.Errorf("expected w.names[0] to be %s, got %s",
-			testDir, w.names[0])
+	// Make sure w.names contains testDir
+	if _, found := w.names[testDir]; !found {
+		t.Errorf("expected w.names to contain testDir")
 	}
 
 	if _, found := w.files[testDir]; !found {
 		t.Errorf("expected to find %s", testDir)
 	}
 
-	if w.files[testDir].Name() != testDir {
+	if w.files[testDir].Name() != filepath.Base(testDir) {
 		t.Errorf("expected w.files[%q].Name() to be %s, got %s",
 			testDir, testDir, w.files[testDir].Name())
 	}
@@ -127,9 +131,10 @@ func TestSetIgnoreDotFiles(t *testing.T) {
 	testDir, teardown := setup(t)
 	defer teardown()
 
-	w := New(IgnoreDotFiles)
+	w := New()
+	w.IgnoreHiddenFiles(true)
 
-	if err := w.Add(testDir); err != nil {
+	if err := w.AddRecursive(testDir); err != nil {
 		t.Fatal(err)
 	}
 
@@ -137,19 +142,18 @@ func TestSetIgnoreDotFiles(t *testing.T) {
 		t.Errorf("expected len(w.files) to be 7, got %d", len(w.files))
 	}
 
-	// Make sure w.names[0] is now equal to testDir.
-	if w.names[0] != testDir {
-		t.Errorf("expected w.names[0] to be %s, got %s",
-			testDir, w.names[0])
+	// Make sure w.names contains testDir
+	if _, found := w.names[testDir]; !found {
+		t.Errorf("expected w.names to contain testDir")
 	}
 
 	if _, found := w.files[testDir]; !found {
 		t.Errorf("expected to find %s", testDir)
 	}
 
-	if w.files[testDir].Name() != testDir {
+	if w.files[testDir].Name() != filepath.Base(testDir) {
 		t.Errorf("expected w.files[%q].Name() to be %s, got %s",
-			testDir, testDir, w.files[testDir].Name())
+			testDir, filepath.Base(testDir), w.files[testDir].Name())
 	}
 
 	fileRecursive := filepath.Join(testDir, "testDirTwo", "file_recursive.txt")
@@ -186,7 +190,8 @@ func TestSetIgnoreDotFilesAndNonRecursive(t *testing.T) {
 	testDir, teardown := setup(t)
 	defer teardown()
 
-	w := New(IgnoreDotFiles, NonRecursive)
+	w := New()
+	w.IgnoreHiddenFiles(true)
 
 	if err := w.Add(testDir); err != nil {
 		t.Fatal(err)
@@ -196,19 +201,18 @@ func TestSetIgnoreDotFilesAndNonRecursive(t *testing.T) {
 		t.Errorf("expected len(w.files) to be 6, got %d", len(w.files))
 	}
 
-	// Make sure w.names[0] is now equal to testDir.
-	if w.names[0] != testDir {
-		t.Errorf("expected w.names[0] to be %s, got %s",
-			testDir, w.names[0])
+	// Make sure w.names contains testDir
+	if _, found := w.names[testDir]; !found {
+		t.Errorf("expected w.names to contain testDir")
 	}
 
 	if _, found := w.files[testDir]; !found {
 		t.Errorf("expected to find %s", testDir)
 	}
 
-	if w.files[testDir].Name() != testDir {
+	if w.files[testDir].Name() != filepath.Base(testDir) {
 		t.Errorf("expected w.files[%q].Name() to be %s, got %s",
-			testDir, testDir, w.files[testDir].Name())
+			testDir, filepath.Base(testDir), w.files[testDir].Name())
 	}
 
 	if _, found := w.files[filepath.Join(testDir, ".dotfile")]; found {
@@ -247,7 +251,7 @@ func TestWatcherAdd(t *testing.T) {
 
 	w := New()
 
-	if err := w.Add(testDir); err != nil {
+	if err := w.AddRecursive(testDir); err != nil {
 		t.Fatal(err)
 	}
 
@@ -256,10 +260,9 @@ func TestWatcherAdd(t *testing.T) {
 		t.Errorf("expected 8 files, found %d", len(w.files))
 	}
 
-	// Make sure w.names[0] is now equal to testDir.
-	if w.names[0] != testDir {
-		t.Errorf("expected w.names[0] to be %s, got %s",
-			testDir, w.names[0])
+	// Make sure w.names contains testDir
+	if _, found := w.names[testDir]; !found {
+		t.Errorf("expected w.names to contain testDir")
 	}
 
 	dirTwo := filepath.Join(testDir, "testDirTwo")
@@ -293,14 +296,14 @@ func TestWatcherAddNotFound(t *testing.T) {
 	}
 }
 
-func TestWatcherRemove(t *testing.T) {
+func TestWatcherRemoveRecursive(t *testing.T) {
 	testDir, teardown := setup(t)
 	defer teardown()
 
 	w := New()
 
 	// Add the testDir to the watchlist.
-	if err := w.Add(testDir); err != nil {
+	if err := w.AddRecursive(testDir); err != nil {
 		t.Fatal(err)
 	}
 
@@ -310,7 +313,7 @@ func TestWatcherRemove(t *testing.T) {
 	}
 
 	// Now remove the folder from the watchlist.
-	if err := w.Remove(testDir); err != nil {
+	if err := w.RemoveRecursive(testDir); err != nil {
 		t.Error(err)
 	}
 
@@ -329,9 +332,12 @@ func TestListFiles(t *testing.T) {
 	testDir, teardown := setup(t)
 	defer teardown()
 
-	fileList, err := ListFiles(testDir, nil)
-	if err != nil {
-		t.Error(err)
+	w := New()
+	w.Add(testDir)
+
+	fileList := w.retrieveFileList()
+	if fileList == nil {
+		t.Error("expected file list to not be empty")
 	}
 
 	// Make sure fInfoTest contains the correct os.FileInfo names.
@@ -344,11 +350,6 @@ func TestListFiles(t *testing.T) {
 
 func TestTriggerEvent(t *testing.T) {
 	w := New()
-
-	// Add the testDir to the watchlist.
-	if err := w.Add("watcher_test.go"); err != nil {
-		t.Fatal(err)
-	}
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -444,49 +445,8 @@ func TestEventAddFile(t *testing.T) {
 	wg.Wait()
 }
 
-func TestIgnoreFiles(t *testing.T) {
-	testDir, teardown := setup(t)
-	defer teardown()
-
-	w := New()
-
-	// Add the testDir to the watchlist.
-	if err := w.Add(testDir); err != nil {
-		t.Fatal(err)
-	}
-
-	// Ignore the testDir.
-	if err := w.Ignore(testDir); err != nil {
-		t.Fatal(err)
-	}
-
-	filePath := filepath.Join(testDir, "newfile_1.txt")
-	if err := ioutil.WriteFile(filePath, []byte{}, 0755); err != nil {
-		t.Error(err)
-	}
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-
-		select {
-		case event := <-w.Event:
-			t.Fatalf("expected to receive no event, %s received", event)
-		case <-time.After(time.Millisecond * 250):
-		}
-	}()
-
-	go func() {
-		// Start the watching process.
-		if err := w.Start(time.Millisecond * 100); err != ErrNothingAdded {
-			t.Fatal("expected ErrNothingAdded error")
-		}
-	}()
-
-	wg.Wait()
-}
+// TODO: TestIgnoreFiles
+func TestIgnoreFiles(t *testing.T) {}
 
 func TestEventDeleteFile(t *testing.T) {
 	testDir, teardown := setup(t)
@@ -710,10 +670,13 @@ func BenchmarkListFiles(b *testing.B) {
 	testDir, teardown := setup(b)
 	defer teardown()
 
+	w := New()
+	w.Add(testDir)
+
 	for i := 0; i < b.N; i++ {
-		_, err := ListFiles(testDir, nil)
-		if err != nil {
-			b.Fatal(err)
+		fileList := w.retrieveFileList()
+		if fileList == nil {
+			b.Fatal("expected file list to not be empty")
 		}
 	}
 }
