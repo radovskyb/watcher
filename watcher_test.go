@@ -385,6 +385,7 @@ func TestEventAddFile(t *testing.T) {
 	defer teardown()
 
 	w := New()
+	w.FilterOps(Create)
 
 	// Add the testDir to the watchlist.
 	if err := w.AddRecursive(testDir); err != nil {
@@ -453,6 +454,7 @@ func TestEventDeleteFile(t *testing.T) {
 	defer teardown()
 
 	w := New()
+	w.FilterOps(Remove)
 
 	// Add the testDir to the watchlist.
 	if err := w.AddRecursive(testDir); err != nil {
@@ -518,6 +520,7 @@ func TestEventRenameFile(t *testing.T) {
 	defer teardown()
 
 	w := New()
+	w.FilterOps(Rename)
 
 	// Add the testDir to the watchlist.
 	if err := w.AddRecursive(testDir); err != nil {
@@ -563,6 +566,7 @@ func TestEventChmodFile(t *testing.T) {
 	defer teardown()
 
 	w := New()
+	w.FilterOps(Chmod)
 
 	// Add the testDir to the watchlist.
 	if err := w.Add(testDir); err != nil {
@@ -628,8 +632,6 @@ func BenchmarkEventRenameFile(b *testing.B) {
 	defer teardown()
 
 	w := New()
-
-	// Filter for only rename events.
 	w.FilterOps(Rename)
 
 	// Add the testDir to the watchlist.
