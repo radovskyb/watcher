@@ -629,6 +629,9 @@ func BenchmarkEventRenameFile(b *testing.B) {
 
 	w := New()
 
+	// Filter for only rename events.
+	w.FilterOps(Rename)
+
 	// Add the testDir to the watchlist.
 	if err := w.AddRecursive(testDir); err != nil {
 		b.Fatal(err)
