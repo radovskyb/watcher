@@ -152,22 +152,6 @@ func (w *Watcher) Add(name string) (err error) {
 		return nil
 	}
 
-	// Make sure name exists.
-	stat, err := os.Stat(name)
-	if err != nil {
-		return err
-	}
-
-	w.files[name] = stat
-
-	// If it's not a directory, just return.
-	if !stat.IsDir() {
-		return nil
-	}
-
-	// Add the name to the names list.
-	w.names[name] = false
-
 	// Add the directory's contents to the files list.
 	fileList, err := w.list(name)
 	if err != nil {
@@ -177,11 +161,27 @@ func (w *Watcher) Add(name string) (err error) {
 		w.files[k] = v
 	}
 
+	// Add the name to the names list.
+	w.names[name] = false
+
 	return nil
 }
 
 func (w *Watcher) list(name string) (map[string]os.FileInfo, error) {
 	fileList := make(map[string]os.FileInfo)
+
+	// Make sure name exists.
+	stat, err := os.Stat(name)
+	if err != nil {
+		return nil, err
+	}
+
+	fileList[name] = stat
+
+	// If it's not a directory, just return.
+	if !stat.IsDir() {
+		return fileList, nil
+	}
 
 	// It's a directory.
 	fInfoList, err := ioutil.ReadDir(name)
@@ -212,15 +212,6 @@ func (w *Watcher) AddRecursive(name string) (err error) {
 		return err
 	}
 
-	// Make sure name exists.
-	_, err = os.Stat(name)
-	if err != nil {
-		return err
-	}
-
-	// Add the name to the names list.
-	w.names[name] = true
-
 	fileList, err := w.listRecursive(name)
 	if err != nil {
 		return err
@@ -228,6 +219,9 @@ func (w *Watcher) AddRecursive(name string) (err error) {
 	for k, v := range fileList {
 		w.files[k] = v
 	}
+
+	// Add the name to the names list.
+	w.names[name] = true
 
 	return nil
 }
