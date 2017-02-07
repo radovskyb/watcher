@@ -452,8 +452,6 @@ func (w *Watcher) Start(d time.Duration) error {
 		// being sent to the main Event channel.
 		evt := make(chan Event)
 
-		// evt := make(chan Event, 10) // Give evt a small buffer.
-
 		// Retrieve the file list for all watched file's and dirs.
 		fileList := w.retrieveFileList()
 
@@ -508,12 +506,12 @@ func (w *Watcher) Start(d time.Duration) error {
 
 func (w *Watcher) pollEvents(files map[string]os.FileInfo, evt chan Event,
 	cancel chan struct{}) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
 	// Store create and remove events for use to check for rename events.
 	creates := make(map[string]os.FileInfo)
 	removes := make(map[string]os.FileInfo)
-
-	w.mu.Lock()
-	defer w.mu.Unlock()
 
 	// Check for removed files.
 	for path, info := range w.files {

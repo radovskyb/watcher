@@ -63,7 +63,7 @@ func setup(t testing.TB) (string, func()) {
 	}
 }
 
-func TestSetNonRecursive(t *testing.T) {
+func TestWatcherAdd(t *testing.T) {
 	testDir, teardown := setup(t)
 	defer teardown()
 
@@ -127,7 +127,7 @@ func TestSetNonRecursive(t *testing.T) {
 	}
 }
 
-func TestSetIgnoreDotFiles(t *testing.T) {
+func TestIgnoreHiddenFilesRecursive(t *testing.T) {
 	testDir, teardown := setup(t)
 	defer teardown()
 
@@ -186,7 +186,7 @@ func TestSetIgnoreDotFiles(t *testing.T) {
 	}
 }
 
-func TestSetIgnoreDotFilesAndNonRecursive(t *testing.T) {
+func TestIgnoreHiddenFiles(t *testing.T) {
 	testDir, teardown := setup(t)
 	defer teardown()
 
@@ -245,7 +245,7 @@ func TestSetIgnoreDotFilesAndNonRecursive(t *testing.T) {
 	}
 }
 
-func TestWatcherAdd(t *testing.T) {
+func TestWatcherAddRecursive(t *testing.T) {
 	testDir, teardown := setup(t)
 	defer teardown()
 
@@ -291,7 +291,7 @@ func TestWatcherAddNotFound(t *testing.T) {
 
 	// Make sure there is an error when adding a
 	// non-existent file/folder.
-	if err := w.Add("random_filename.txt"); err == nil {
+	if err := w.AddRecursive("random_filename.txt"); err == nil {
 		t.Error("expected a file not found error")
 	}
 }
@@ -333,7 +333,7 @@ func TestListFiles(t *testing.T) {
 	defer teardown()
 
 	w := New()
-	w.Add(testDir)
+	w.AddRecursive(testDir)
 
 	fileList := w.retrieveFileList()
 	if fileList == nil {
@@ -387,7 +387,7 @@ func TestEventAddFile(t *testing.T) {
 	w := New()
 
 	// Add the testDir to the watchlist.
-	if err := w.Add(testDir); err != nil {
+	if err := w.AddRecursive(testDir); err != nil {
 		t.Fatal(err)
 	}
 
@@ -455,7 +455,7 @@ func TestEventDeleteFile(t *testing.T) {
 	w := New()
 
 	// Add the testDir to the watchlist.
-	if err := w.Add(testDir); err != nil {
+	if err := w.AddRecursive(testDir); err != nil {
 		t.Fatal(err)
 	}
 
@@ -520,7 +520,7 @@ func TestEventRenameFile(t *testing.T) {
 	w := New()
 
 	// Add the testDir to the watchlist.
-	if err := w.Add(testDir); err != nil {
+	if err := w.AddRecursive(testDir); err != nil {
 		t.Fatal(err)
 	}
 
@@ -630,7 +630,7 @@ func BenchmarkEventRenameFile(b *testing.B) {
 	w := New()
 
 	// Add the testDir to the watchlist.
-	if err := w.Add(testDir); err != nil {
+	if err := w.AddRecursive(testDir); err != nil {
 		b.Fatal(err)
 	}
 
@@ -671,7 +671,7 @@ func BenchmarkListFiles(b *testing.B) {
 	defer teardown()
 
 	w := New()
-	w.Add(testDir)
+	w.AddRecursive(testDir)
 
 	for i := 0; i < b.N; i++ {
 		fileList := w.retrieveFileList()
