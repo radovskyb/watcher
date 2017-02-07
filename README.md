@@ -8,7 +8,8 @@
 
 Events contain the `os.FileInfo` of the file or directory that the event is based on and the type of event that has occurred.
 
-#### Event.Path for Rename and Move events is now returned in the format of "fromPath -> toPath"
+# Update
+Event.Path for Rename and Move events is now returned in the format of `fromPath -> toPath`
 
 # Installation
 
