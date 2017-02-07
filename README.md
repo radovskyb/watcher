@@ -1,7 +1,5 @@
 # watcher
 
-### Docs and tests need some rewriting.
-
 [![Build Status](https://travis-ci.org/radovskyb/watcher.svg?branch=master)](https://travis-ci.org/radovskyb/watcher)
 
 `watcher` is a simple Go package for watching for files or directory changes (recursively by default) without using filesystem events, which allows it to work cross platform consistently.
@@ -9,6 +7,8 @@
 `watcher` watches for changes and notifies over channels either anytime an event or an error has occurred.
 
 Events contain the `os.FileInfo` of the file or directory that the event is based on and the type of event that has occurred.
+
+#### Event.Path for Rename and Move events is now returned in the format of "fromPath -> toPath"
 
 # Installation
 
