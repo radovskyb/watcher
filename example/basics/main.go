@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"sync"
 	"time"
 
 	"github.com/radovskyb/watcher"
@@ -12,18 +11,13 @@ import (
 func main() {
 	w := watcher.New()
 
-	// SetMaxEvents to 1 to allow at most 1 Event to be received
+	// SetMaxEvents to 2 to allow at most 2 event's to be received
 	// on the Event channel per watching cycle.
 	//
 	// If SetMaxEvents is not set, the default is to send all events.
-	w.SetMaxEvents(1)
-
-	var wg sync.WaitGroup
-	wg.Add(1)
+	w.SetMaxEvents(2)
 
 	go func() {
-		defer wg.Done()
-
 		for {
 			select {
 			case event := <-w.Event:
@@ -46,17 +40,19 @@ func main() {
 				}
 			case err := <-w.Error:
 				log.Fatalln(err)
+			case <-w.Closed:
+				return
 			}
 		}
 	}()
 
-	// Watch this file for changes.
-	if err := w.Add("main.go"); err != nil {
+	// Watch this folder for changes.
+	if err := w.Add("."); err != nil {
 		log.Fatalln(err)
 	}
 
 	// Watch test_folder recursively for changes.
-	if err := w.Add("../test_folder"); err != nil {
+	if err := w.AddRecursive("../test_folder"); err != nil {
 		log.Fatalln(err)
 	}
 
@@ -79,6 +75,4 @@ func main() {
 	if err := w.Start(time.Millisecond * 100); err != nil {
 		log.Fatalln(err)
 	}
-
-	wg.Wait()
 }

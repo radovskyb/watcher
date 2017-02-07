@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"sync"
 	"time"
 
 	"github.com/radovskyb/watcher"
@@ -12,29 +11,27 @@ import (
 func main() {
 	w := watcher.New()
 
-	var wg sync.WaitGroup
-	wg.Add(1)
+	// Ignore hidden files.
+	w.IgnoreHiddenFiles(true)
 
 	go func() {
-		defer wg.Done()
-
 		for {
 			select {
 			case event := <-w.Event:
+				// Print the event's info.
 				fmt.Println(event)
 			case err := <-w.Error:
 				log.Fatalln(err)
+			case <-w.Closed:
+				return
 			}
 		}
 	}()
 
-	// Watch the current folder for changes.
-	if err := w.Add("."); err != nil {
-		log.Fatalln(err)
-	}
-
-	// Watch the previous folder for changes recursively.
-	if err := w.Add(".."); err != nil {
+	// Watch test_folder recursively for changes.
+	//
+	// Watcher won't add .dotfile to the watchlist.
+	if err := w.AddRecursive("../test_folder"); err != nil {
 		log.Fatalln(err)
 	}
 
@@ -48,6 +45,4 @@ func main() {
 	if err := w.Start(time.Millisecond * 100); err != nil {
 		log.Fatalln(err)
 	}
-
-	wg.Wait()
 }
