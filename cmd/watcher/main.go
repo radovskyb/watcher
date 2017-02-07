@@ -6,8 +6,8 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"os/signal"
 	"strings"
-	"sync"
 	"time"
 	"unicode"
 
@@ -46,26 +46,13 @@ func main() {
 		}
 	}
 
-	options := []watcher.Option{}
-
-	// If recursive is set to false, set watcher.NonRecursive.
-	if !*recursive {
-		options = append(options, watcher.NonRecursive)
-	}
-
-	// If dotfiles is set to false, set watcher.IgnoreDotFiles.
-	if !*dotfiles {
-		options = append(options, watcher.IgnoreDotFiles)
-	}
-
 	// Create a new Watcher with the specified options.
-	w := watcher.New(options...)
+	w := watcher.New()
+	w.IgnoreHiddenFiles(!*dotfiles)
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-
+	done := make(chan struct{})
 	go func() {
-		defer wg.Done()
+		defer close(done)
 
 		for {
 			select {
@@ -93,14 +80,22 @@ func main() {
 					continue
 				}
 				log.Fatalln(err)
+			case <-w.Closed:
+				return
 			}
 		}
 	}()
 
 	// Add the files and folders specified.
 	for _, file := range files {
-		if err := w.Add(file); err != nil {
-			log.Fatalln(err)
+		if *recursive {
+			if err := w.AddRecursive(file); err != nil {
+				log.Fatalln(err)
+			}
+		} else {
+			if err := w.Add(file); err != nil {
+				log.Fatalln(err)
+			}
 		}
 	}
 
@@ -120,10 +115,22 @@ func main() {
 		log.Fatalln(err)
 	}
 
+	closed := make(chan struct{})
+
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Kill, os.Interrupt)
+	go func() {
+		<-c
+		w.Close()
+		<-done
+		fmt.Println("watcher closed")
+		close(closed)
+	}()
+
 	// Start the watching process.
 	if err := w.Start(parsedInterval); err != nil {
 		log.Fatalln(err)
 	}
 
-	wg.Wait()
+	<-closed
 }
