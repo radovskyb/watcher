@@ -92,6 +92,7 @@ type Watcher struct {
 	names        map[string]bool        // bool for recursive or not.
 	files        map[string]os.FileInfo // map of files.
 	ignored      map[string]struct{}    // ignored files or directories.
+	ops          map[Op]struct{}        // Op filtering.
 	ignoreHidden bool                   // ignore hidden files or not.
 	maxEvents    int                    // max sent events per cycle
 }
@@ -122,6 +123,15 @@ func (w *Watcher) SetMaxEvents(delta int) {
 func (w *Watcher) IgnoreHiddenFiles(ignore bool) {
 	w.mu.Lock()
 	w.ignoreHidden = ignore
+	w.mu.Unlock()
+}
+
+func (w *Watcher) FilterOps(ops ...Op) {
+	w.mu.Lock()
+	w.ops = make(map[Op]struct{})
+	for _, op := range ops {
+		w.ops[op] = struct{}{}
+	}
 	w.mu.Unlock()
 }
 
@@ -416,12 +426,6 @@ func (w *Watcher) retrieveFileList() map[string]os.FileInfo {
 	return fileList
 }
 
-type renameEvt struct {
-	from string
-	to   string
-	info os.FileInfo
-}
-
 // Start begins the polling cycle which repeats every specified
 // duration until Close is called.
 func (w *Watcher) Start(d time.Duration) error {
@@ -473,10 +477,17 @@ func (w *Watcher) Start(d time.Duration) error {
 				close(w.Closed)
 				return nil
 			case event := <-evt:
-				numEvents++
+				if len(w.ops) > 0 { // Filter Ops.
+					_, found := w.ops[event.Op]
+					if !found {
+						continue
+					}
+				}
 				if w.maxEvents > 0 && numEvents == w.maxEvents {
 					close(cancel)
+					break inner
 				}
+				numEvents++
 				w.Event <- event
 			case <-done: // Current cycle is finished.
 				break inner

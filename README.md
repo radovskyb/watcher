@@ -1,6 +1,6 @@
 # watcher
 
-### Currently needs a few changes and some rewriting. (including docs)
+### Docs and tests need some rewriting.
 
 [![Build Status](https://travis-ci.org/radovskyb/watcher.svg?branch=master)](https://travis-ci.org/radovskyb/watcher)
 
@@ -22,6 +22,7 @@ If you would ike to contribute, simply submit a pull request.
 # Features
 
 - Customizable polling interval.
+- Filter Ops.
 - Watch folders recursively or non-recursively.
 - Choose to ignore dot files.
 - Notify the `os.FileInfo` of the file that the event is based on. e.g `Name`, `ModTime`, `IsDir`, etc.
@@ -35,8 +36,6 @@ If you would ike to contribute, simply submit a pull request.
 
 - Write more tests.
 - Write benchmarks.
-- Rewrite `Start` method.
-- Make sure renames based on modtime actually work cross platform.
 
 # Command
 
