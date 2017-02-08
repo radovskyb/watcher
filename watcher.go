@@ -12,14 +12,14 @@ import (
 )
 
 var (
-	// ErrDurationTooShort occurs when calling the poller's Start
+	// ErrDurationTooShort occurs when calling the watcher's Start
 	// method with a duration that's less than 1 nanosecond.
 	ErrDurationTooShort = errors.New("error: duration is less than 1ns")
 
-	// ErrWatcherRunning occurs when trying to call the poller's
+	// ErrWatcherRunning occurs when trying to call the watcher's
 	// Start method and the polling cycle is still already running
 	// from previously calling Start and not yet calling Close.
-	ErrWatcherRunning = errors.New("error: poller is already running")
+	ErrWatcherRunning = errors.New("error: watcher is already running")
 
 	// ErrWatchedFileDeleted is an error that occurs when a file or folder that was
 	// being watched has been deleted.
@@ -97,7 +97,7 @@ type Watcher struct {
 	maxEvents    int                    // max sent events per cycle
 }
 
-// New creates a new Watcher for the specified Watcher Interface.
+// New creates a new Watcher.
 func New() *Watcher {
 	return &Watcher{
 		Event:   make(chan Event),
