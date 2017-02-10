@@ -11,33 +11,20 @@ import (
 func main() {
 	w := watcher.New()
 
-	// SetMaxEvents to 2 to allow at most 2 event's to be received
+	// SetMaxEvents to 1 to allow at most 1 event's to be received
 	// on the Event channel per watching cycle.
 	//
 	// If SetMaxEvents is not set, the default is to send all events.
-	w.SetMaxEvents(2)
+	w.SetMaxEvents(1)
+
+	// Only notify rename and move events.
+	w.FilterOps(watcher.Rename, watcher.Move)
 
 	go func() {
 		for {
 			select {
 			case event := <-w.Event:
-				// Print the event's info.
-				fmt.Println(event)
-
-				// Print out the file name with a message
-				// based on the event type.
-				switch event.Op {
-				case watcher.Write:
-					fmt.Println("Wrote file:", event.Name())
-				case watcher.Create:
-					fmt.Println("Created file:", event.Name())
-				case watcher.Remove:
-					fmt.Println("Removed file:", event.Name())
-				case watcher.Rename:
-					fmt.Println("Renamed file:", event.Name())
-				case watcher.Chmod:
-					fmt.Println("Chmoded file:", event.Name())
-				}
+				fmt.Println(event) // Print the event's info.
 			case err := <-w.Error:
 				log.Fatalln(err)
 			case <-w.Closed:

@@ -2,11 +2,11 @@
 
 [![Build Status](https://travis-ci.org/radovskyb/watcher.svg?branch=master)](https://travis-ci.org/radovskyb/watcher)
 
-`watcher` is a simple Go package for watching for files or directory changes (recursively by default) without using filesystem events, which allows it to work cross platform consistently.
+`watcher` is a Go package for watching for files or directory changes (recursively or non recursively) without using filesystem events, which allows it to work cross platform consistently.
 
 `watcher` watches for changes and notifies over channels either anytime an event or an error has occurred.
 
-Events contain the `os.FileInfo` of the file or directory that the event is based on and the type of event that has occurred.
+Events contain the `os.FileInfo` of the file or directory that the event is based on and the type of event and file or directory path.
 
 # Update
 Event.Path for Rename and Move events is now returned in the format of `fromPath -> toPath`
@@ -23,15 +23,15 @@ If you would ike to contribute, simply submit a pull request.
 # Features
 
 - Customizable polling interval.
-- Filter Ops.
+- Filter Events.
 - Watch folders recursively or non-recursively.
-- Choose to ignore dot files.
-- Notify the `os.FileInfo` of the file that the event is based on. e.g `Name`, `ModTime`, `IsDir`, etc.
-- Notify the full path of the file that the event is based on.
-- Trigger custom events.
+- Choose to ignore hidden files.
+- Choose to ignore specified files and folders.
+- Notifies the `os.FileInfo` of the file that the event is based on. e.g `Name`, `ModTime`, `IsDir`, etc.
+- Notifies the full path of the file that the event is based on or the old and new paths if the event was a `Rename` or `Move` event.
 - Limit amount of events that can be received per watching cycle.
-- Choose to list the files being watched.
-- Ignore specific files and folders.
+- List the files being watched.
+- Trigger custom events.
 
 # Todo
 
@@ -60,11 +60,11 @@ Usage of watcher:
     	watch folders recursively (default true)
 ```
 
-All of the flags are optional and watcher can be simply called by itself:
+All of the flags are optional and watcher can also be called by itself:
 ```shell
 watcher
 ```
-(watches the current directory recursively for changes and notifies for any events that occur.)
+(watches the current directory recursively for changes and notifies any events that occur.)
 
 A more elaborate example using the `watcher` command:
 ```shell
@@ -105,36 +105,20 @@ import (
 func main() {
 	w := watcher.New()
 
-	// SetMaxEvents to 2 to allow at most 2 event's to be received
+	// SetMaxEvents to 1 to allow at most 1 event's to be received
 	// on the Event channel per watching cycle.
 	//
 	// If SetMaxEvents is not set, the default is to send all events.
-	w.SetMaxEvents(2)
+	w.SetMaxEvents(1)
 
-	// Only return rename or move events.
-	// w.FilterOps(watcher.Rename, watcher.Move)
+	// Only notify rename and move events.
+	w.FilterOps(watcher.Rename, watcher.Move)
 
 	go func() {
 		for {
 			select {
-			case event := <-w.Event:
-				// Print the event's info.
-				fmt.Println(event)
-
-				// Print out the file name with a message
-				// based on the event type.
-				switch event.Op {
-				case watcher.Write:
-					fmt.Println("Wrote file:", event.Name())
-				case watcher.Create:
-					fmt.Println("Created file:", event.Name())
-				case watcher.Remove:
-					fmt.Println("Removed file:", event.Name())
-				case watcher.Rename:
-					fmt.Println("Renamed file:", event.Name())
-				case watcher.Chmod:
-					fmt.Println("Chmoded file:", event.Name())
-				}
+			case event := <-w.Event:	
+				fmt.Println(event) // Print the event's info.
 			case err := <-w.Error:
 				log.Fatalln(err)
 			case <-w.Closed:
