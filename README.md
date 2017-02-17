@@ -38,57 +38,6 @@ If you would ike to contribute, simply submit a pull request.
 - Write more tests.
 - Write benchmarks.
 
-# Command
-
-`watcher` comes with a simple command which is installed when using the `go get` command from above.
-
-# Usage
-
-```
-Usage of watcher:
-  -cmd string
-    	command to run when an event occurs
-  -dotfiles
-    	watch dot files (default true)
-  -interval string
-    	watcher poll interval (default "100ms")
-  -list 
-    	list watched files on start (default false)
-  -pipe
-    	pipe event's info to command's stdin (default false)
-  -recursive
-    	watch folders recursively (default true)
-```
-
-All of the flags are optional and watcher can also be called by itself:
-```shell
-watcher
-```
-(watches the current directory recursively for changes and notifies any events that occur.)
-
-A more elaborate example using the `watcher` command:
-```shell
-watcher -dotfiles=false -recursive=false -cmd="./myscript" main.go ../
-```
-In this example, `watcher` will ignore dot files and folders and won't watch any of the specified folders recursively. It will also run the script `./myscript` anytime an event occurs while watching `main.go` or any files or folders in the previous directory (`../`).
-
-Using the `pipe` and `cmd` flags together will send the event's info to the command's stdin when changes are detected.
-
-First create a file called `script.py` with the following contents:
-```python
-import sys
-
-for line in sys.stdin:
-	print (line + " - python")
-```
-
-Next, start watcher with the `pipe` and `cmd` flags enabled:
-```shell
-watcher -cmd="python script.py" -pipe=true
-```
-
-Now when changes are detected, the event's info will be output from the running python script.
-
 # Example
 
 ```go
@@ -158,3 +107,54 @@ func main() {
 	}
 }
 ```
+
+# Command
+
+`watcher` comes with a simple command which is installed when using the `go get` command from above.
+
+# Usage
+
+```
+Usage of watcher:
+  -cmd string
+    	command to run when an event occurs
+  -dotfiles
+    	watch dot files (default true)
+  -interval string
+    	watcher poll interval (default "100ms")
+  -list 
+    	list watched files on start (default false)
+  -pipe
+    	pipe event's info to command's stdin (default false)
+  -recursive
+    	watch folders recursively (default true)
+```
+
+All of the flags are optional and watcher can also be called by itself:
+```shell
+watcher
+```
+(watches the current directory recursively for changes and notifies any events that occur.)
+
+A more elaborate example using the `watcher` command:
+```shell
+watcher -dotfiles=false -recursive=false -cmd="./myscript" main.go ../
+```
+In this example, `watcher` will ignore dot files and folders and won't watch any of the specified folders recursively. It will also run the script `./myscript` anytime an event occurs while watching `main.go` or any files or folders in the previous directory (`../`).
+
+Using the `pipe` and `cmd` flags together will send the event's info to the command's stdin when changes are detected.
+
+First create a file called `script.py` with the following contents:
+```python
+import sys
+
+for line in sys.stdin:
+	print (line + " - python")
+```
+
+Next, start watcher with the `pipe` and `cmd` flags enabled:
+```shell
+watcher -cmd="python script.py" -pipe=true
+```
+
+Now when changes are detected, the event's info will be output from the running python script.
