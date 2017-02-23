@@ -79,7 +79,6 @@ func (e Event) String() string {
 	return "???"
 }
 
-// TODO: Move ignore hidden into names with struct as option.
 type Watcher struct {
 	Event  chan Event
 	Error  chan error
