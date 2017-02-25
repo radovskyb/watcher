@@ -37,9 +37,9 @@ func main() {
 
 	fmt.Println()
 
-	// Close the watcher after 250 milliseconds.
+	// Close the watcher after watcher started.
 	go func() {
-		time.Sleep(time.Millisecond * 250)
+		w.Wait()
 		w.Close()
 	}()
 

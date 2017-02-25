@@ -38,7 +38,7 @@ func main() {
 	fmt.Println()
 
 	go func() {
-		time.Sleep(time.Second * 3)
+		w.Wait()
 		// Ignore ../test_folder/test_folder_recursive and ../test_folder/.dotfile
 		if err := w.Ignore("../test_folder/test_folder_recursive", "../test_folder/.dotfile"); err != nil {
 			log.Fatalln(err)
