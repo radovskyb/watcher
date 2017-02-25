@@ -85,6 +85,7 @@ type Watcher struct {
 	Closed chan struct{}
 	close  chan struct{}
 
+	wg 	*sync.WaitGroup
 	// mu protects the following.
 	mu           *sync.Mutex
 	running      bool
@@ -97,13 +98,17 @@ type Watcher struct {
 }
 
 // New creates a new Watcher.
+// and set a block for gorutines which shouldn't be started before watcher
 func New() *Watcher {
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
 	return &Watcher{
 		Event:   make(chan Event),
 		Error:   make(chan error),
 		Closed:  make(chan struct{}),
 		close:   make(chan struct{}),
 		mu:      new(sync.Mutex),
+		wg:      wg,
 		files:   make(map[string]os.FileInfo),
 		ignored: make(map[string]struct{}),
 		names:   make(map[string]bool),
@@ -435,6 +440,7 @@ func (w *Watcher) Start(d time.Duration) error {
 	}
 	w.running = true
 	w.mu.Unlock()
+	w.wg.Done()
 
 	for {
 		// done lets the inner polling cycle loop know when the
@@ -577,6 +583,10 @@ func (w *Watcher) pollEvents(files map[string]os.FileInfo, evt chan Event,
 		case evt <- Event{Remove, path, info}:
 		}
 	}
+}
+
+func (w *Watcher) Wait() {
+	w.wg.Wait()
 }
 
 func (w *Watcher) Close() {
