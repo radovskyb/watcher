@@ -378,6 +378,7 @@ func (fs *fileInfo) Sys() interface{} {
 // TriggerEvent is a method that can be used to trigger an event, separate to
 // the file watching process.
 func (w *Watcher) TriggerEvent(eventType Op, file os.FileInfo) {
+	w.Wait()
 	if file == nil {
 		file = &fileInfo{name: "triggered event", modTime: time.Now()}
 	}
