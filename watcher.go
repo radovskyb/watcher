@@ -84,7 +84,8 @@ type Watcher struct {
 	Error  chan error
 	Closed chan struct{}
 	close  chan struct{}
-	wg 	*sync.WaitGroup
+	wg     *sync.WaitGroup
+
 	// mu protects the following.
 	mu           *sync.Mutex
 	running      bool
@@ -101,7 +102,7 @@ func New() *Watcher {
 	// Set up the WaitGroup for w.Wait().
 	var wg sync.WaitGroup
 	wg.Add(1)
-	
+
 	return &Watcher{
 		Event:   make(chan Event),
 		Error:   make(chan error),
@@ -441,7 +442,7 @@ func (w *Watcher) Start(d time.Duration) error {
 	}
 	w.running = true
 	w.mu.Unlock()
-	
+
 	// Unblock w.Wait().
 	w.wg.Done()
 
