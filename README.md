@@ -94,9 +94,9 @@ func main() {
 
 	fmt.Println()
 
-	// Trigger 2 events after 100 milliseconds.
+	// Trigger 2 events after watcher started.
 	go func() {
-		time.Sleep(time.Millisecond * 100)
+		w.Wait()
 		w.TriggerEvent(watcher.Create, nil)
 		w.TriggerEvent(watcher.Remove, nil)
 	}()

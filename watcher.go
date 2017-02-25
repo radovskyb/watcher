@@ -84,7 +84,7 @@ type Watcher struct {
 	Error  chan error
 	Closed chan struct{}
 	close  chan struct{}
-
+	wg 	*sync.WaitGroup
 	// mu protects the following.
 	mu           *sync.Mutex
 	running      bool
@@ -98,12 +98,17 @@ type Watcher struct {
 
 // New creates a new Watcher.
 func New() *Watcher {
+	// Set up the WaitGroup for w.Wait().
+	var wg sync.WaitGroup
+	wg.Add(1)
+	
 	return &Watcher{
 		Event:   make(chan Event),
 		Error:   make(chan error),
 		Closed:  make(chan struct{}),
 		close:   make(chan struct{}),
 		mu:      new(sync.Mutex),
+		wg:      &wg,
 		files:   make(map[string]os.FileInfo),
 		ignored: make(map[string]struct{}),
 		names:   make(map[string]bool),
@@ -373,6 +378,7 @@ func (fs *fileInfo) Sys() interface{} {
 // TriggerEvent is a method that can be used to trigger an event, separate to
 // the file watching process.
 func (w *Watcher) TriggerEvent(eventType Op, file os.FileInfo) {
+	w.Wait()
 	if file == nil {
 		file = &fileInfo{name: "triggered event", modTime: time.Now()}
 	}
@@ -435,6 +441,9 @@ func (w *Watcher) Start(d time.Duration) error {
 	}
 	w.running = true
 	w.mu.Unlock()
+	
+	// Unblock w.Wait().
+	w.wg.Done()
 
 	for {
 		// done lets the inner polling cycle loop know when the
@@ -577,6 +586,11 @@ func (w *Watcher) pollEvents(files map[string]os.FileInfo, evt chan Event,
 		case evt <- Event{Remove, path, info}:
 		}
 	}
+}
+
+// Wait blocks until the watcher is started.
+func (w *Watcher) Wait() {
+	w.wg.Wait()
 }
 
 func (w *Watcher) Close() {
