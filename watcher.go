@@ -125,12 +125,16 @@ func (w *Watcher) SetMaxEvents(delta int) {
 	w.mu.Unlock()
 }
 
+// IgnoreHiddenFiles sets the watcher to ignore any file or directory
+// that starts with a dot.
 func (w *Watcher) IgnoreHiddenFiles(ignore bool) {
 	w.mu.Lock()
 	w.ignoreHidden = ignore
 	w.mu.Unlock()
 }
 
+// FilterOps filters which event op types should be returned
+// when an event occurs.
 func (w *Watcher) FilterOps(ops ...Op) {
 	w.mu.Lock()
 	w.ops = make(map[Op]struct{})
