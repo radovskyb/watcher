@@ -11,14 +11,13 @@ Events contain the `os.FileInfo` of the file or directory that the event is base
 # Update
 Event.Path for Rename and Move events is now returned in the format of `fromPath -> toPath`
 
+Rename/Move events currently not working on Windows (investigating the issue)
+
 # Installation
 
 ```shell
 go get -u github.com/radovskyb/watcher/...
 ```
-
-# Contributing
-If you would ike to contribute, simply submit a pull request.
 
 # Features
 
@@ -107,6 +106,9 @@ func main() {
 	}
 }
 ```
+
+# Contributing
+If you would ike to contribute, simply submit a pull request.
 
 # Command
 
