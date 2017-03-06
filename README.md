@@ -11,7 +11,8 @@ Events contain the `os.FileInfo` of the file or directory that the event is base
 # Update
 Event.Path for Rename and Move events is now returned in the format of `fromPath -> toPath`
 
-##### Chmod tests currently failing on windows (need to investigate).
+
+#### Chmod event is not supported under windows.
 
 # Installation
 
