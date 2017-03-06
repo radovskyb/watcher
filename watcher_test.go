@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -562,6 +563,11 @@ func TestEventRenameFile(t *testing.T) {
 }
 
 func TestEventChmodFile(t *testing.T) {
+	// Chmod is not supported under windows.
+	if runtime.GOOS == "windows" {
+		return
+	}
+
 	testDir, teardown := setup(t)
 	defer teardown()
 
