@@ -691,3 +691,38 @@ func BenchmarkListFiles(b *testing.B) {
 		}
 	}
 }
+
+func TestSetMaxEvents(t *testing.T) {
+	w := New()
+
+	if w.maxEvents != 0 {
+		t.Fatalf("expected max events to be 0, got %d", w.maxEvents)
+	}
+
+	w.SetMaxEvents(3)
+
+	if w.maxEvents != 3 {
+		t.Fatalf("expected max events to be 3, got %d", w.maxEvents)
+	}
+}
+
+func TestOpsString(t *testing.T) {
+	testCases := []struct {
+		want     Op
+		expected string
+	}{
+		{Create, "CREATE"},
+		{Write, "WRITE"},
+		{Remove, "REMOVE"},
+		{Rename, "RENAME"},
+		{Chmod, "CHMOD"},
+		{Move, "MOVE"},
+		{Op(10), "???"},
+	}
+
+	for _, tc := range testCases {
+		if tc.want.String() != tc.expected {
+			t.Errorf("expected %s, got %s", tc.expected, tc.want.String())
+		}
+	}
+}
