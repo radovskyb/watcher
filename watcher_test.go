@@ -633,6 +633,32 @@ func TestEventChmodFile(t *testing.T) {
 	wg.Wait()
 }
 
+func TestWatcherStartWithInvalidDuration(t *testing.T) {
+	w := New()
+
+	err := w.Start(0)
+	if err != ErrDurationTooShort {
+		t.Fatalf("expected ErrDurationTooShort error, got %s", err.Error())
+	}
+}
+
+func TestWatcherStartWhenAlreadyRunning(t *testing.T) {
+	w := New()
+
+	go func() {
+		err := w.Start(time.Millisecond * 100)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
+	w.Wait()
+
+	err := w.Start(time.Millisecond * 100)
+	if err != ErrWatcherRunning {
+		t.Fatalf("expected ErrWatcherRunning error, got %s", err.Error())
+	}
+}
+
 func BenchmarkEventRenameFile(b *testing.B) {
 	testDir, teardown := setup(b)
 	defer teardown()
@@ -682,12 +708,40 @@ func BenchmarkListFiles(b *testing.B) {
 	defer teardown()
 
 	w := New()
-	w.AddRecursive(testDir)
+	err := w.AddRecursive(testDir)
+	if err != nil {
+		b.Fatal(err)
+	}
 
 	for i := 0; i < b.N; i++ {
 		fileList := w.retrieveFileList()
 		if fileList == nil {
 			b.Fatal("expected file list to not be empty")
+		}
+	}
+}
+
+func TestWatchedFiles(t *testing.T) {
+	testDir, teardown := setup(t)
+	defer teardown()
+
+	w := New()
+
+	err := w.Add(testDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wf := w.WatchedFiles()
+	fileList := w.retrieveFileList()
+
+	if len(wf) != len(fileList) {
+		t.Fatalf("expected len of wf to be %d, got %d", len(fileList), len(wf))
+	}
+
+	for path := range fileList {
+		if _, found := wf[path]; !found {
+			t.Fatalf("%s not found in watched file's list", path)
 		}
 	}
 }
