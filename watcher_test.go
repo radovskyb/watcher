@@ -64,11 +64,43 @@ func setup(t testing.TB) (string, func()) {
 	}
 }
 
+func TestEventString(t *testing.T) {
+	e := &Event{Op: Create, Path: "/fake/path"}
+
+	testCases := []struct {
+		info     os.FileInfo
+		expected string
+	}{
+		{nil, "???"},
+		{
+			&fileInfo{name: "f1", dir: true},
+			"DIRECTORY \"f1\" CREATE [/fake/path]",
+		},
+		{
+			&fileInfo{name: "f2", dir: false},
+			"FILE \"f2\" CREATE [/fake/path]",
+		},
+	}
+
+	for _, tc := range testCases {
+		e.FileInfo = tc.info
+		if e.String() != tc.expected {
+			t.Errorf("expected e.String() to be %s, got %s", tc.expected, e.String())
+		}
+	}
+}
+
 func TestWatcherAdd(t *testing.T) {
 	testDir, teardown := setup(t)
 	defer teardown()
 
 	w := New()
+
+	// Try to add a non-exising path.
+	err := w.Add("-")
+	if err == nil {
+		t.Error("expected error to not be nil")
+	}
 
 	if err := w.Add(testDir); err != nil {
 		t.Fatal(err)
@@ -127,6 +159,56 @@ func TestWatcherAdd(t *testing.T) {
 			dirTwo, w.files[dirTwo].Name())
 	}
 }
+
+func TestIgnore(t *testing.T) {
+	testDir, teardown := setup(t)
+	defer teardown()
+
+	w := New()
+
+	err := w.Add(testDir)
+	if err != nil {
+		t.Errorf("expected error to be nil, got %s", err)
+	}
+	if len(w.files) != 7 {
+		t.Errorf("expected len(w.files) to be 7, got %d", len(w.files))
+	}
+
+	err = w.Ignore(testDir)
+	if err != nil {
+		t.Errorf("expected error to be nil, got %s", err)
+	}
+	if len(w.files) != 0 {
+		t.Errorf("expected len(w.files) to be 0, got %d", len(w.files))
+	}
+}
+
+func TestRemove(t *testing.T) {
+	testDir, teardown := setup(t)
+	defer teardown()
+
+	w := New()
+
+	err := w.Add(testDir)
+	if err != nil {
+		t.Errorf("expected error to be nil, got %s", err)
+	}
+	if len(w.files) != 7 {
+		t.Errorf("expected len(w.files) to be 7, got %d", len(w.files))
+	}
+
+	err = w.Remove(testDir)
+	if err != nil {
+		t.Errorf("expected error to be nil, got %s", err)
+	}
+	if len(w.files) != 0 {
+		t.Errorf("expected len(w.files) to be 0, got %d", len(w.files))
+	}
+
+	// TODO: Test remove single file.
+}
+
+// TODO: Test remove recursive function.
 
 func TestIgnoreHiddenFilesRecursive(t *testing.T) {
 	testDir, teardown := setup(t)

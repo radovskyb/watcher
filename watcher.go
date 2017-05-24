@@ -280,6 +280,9 @@ func (w *Watcher) Remove(name string) (err error) {
 		return nil
 	}
 
+	// Delete the actual directory from w.files
+	delete(w.files, name)
+
 	// If it's a directory, delete all of it's contents from w.files.
 	for path := range w.files {
 		if filepath.Dir(path) == name {
@@ -359,10 +362,11 @@ type fileInfo struct {
 	mode    os.FileMode
 	modTime time.Time
 	sys     interface{}
+	dir     bool
 }
 
 func (fs *fileInfo) IsDir() bool {
-	return false
+	return fs.dir
 }
 func (fs *fileInfo) ModTime() time.Time {
 	return fs.modTime
