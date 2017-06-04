@@ -90,6 +90,54 @@ func TestEventString(t *testing.T) {
 	}
 }
 
+func TestFileInfo(t *testing.T) {
+	modTime := time.Now()
+
+	fInfo := &fileInfo{
+		name:    "finfo",
+		size:    1,
+		mode:    os.ModeDir,
+		modTime: modTime,
+		sys:     nil,
+		dir:     true,
+	}
+
+	// Test file info methods.
+	if fInfo.Name() != "finfo" {
+		t.Fatal("expected fInfo.Name() to be 'finfo', got %s", fInfo.Name())
+	}
+	if fInfo.IsDir() != true {
+		t.Fatal("expected fInfo.IsDir() to be true, got %t", fInfo.IsDir())
+	}
+	if fInfo.Size() != 1 {
+		t.Fatal("expected fInfo.Size() to be 1, got %d", fInfo.Size())
+	}
+	if fInfo.Sys() != nil {
+		t.Fatal("expected fInfo.Sys() to be nil, got %v", fInfo.Sys())
+	}
+	if fInfo.ModTime() != modTime {
+		t.Fatal("expected fInfo.ModTime() to be %v, got %v", modTime, fInfo.ModTime())
+	}
+	if fInfo.Mode() != os.ModeDir {
+		t.Fatal("expected fInfo.Mode() to be os.ModeDir, got %#v", fInfo.Mode())
+	}
+
+	w := New()
+
+	w.wg.Done() // Set the waitgroup to done.
+
+	go func() {
+		// Trigger an event with the file info.
+		w.TriggerEvent(Create, fInfo)
+	}()
+
+	e := <-w.Event
+
+	if e.FileInfo != fInfo {
+		t.Fatal("expected e.FileInfo to be equal to fInfo")
+	}
+}
+
 func TestWatcherAdd(t *testing.T) {
 	testDir, teardown := setup(t)
 	defer teardown()
@@ -801,6 +849,55 @@ func BenchmarkListFiles(b *testing.B) {
 			b.Fatal("expected file list to not be empty")
 		}
 	}
+}
+
+func TestClose(t *testing.T) {
+	testDir, teardown := setup(t)
+	defer teardown()
+
+	w := New()
+
+	err := w.Add(testDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wf := w.WatchedFiles()
+	fileList := w.retrieveFileList()
+
+	if len(wf) != len(fileList) {
+		t.Fatalf("expected len of wf to be %d, got %d", len(fileList), len(wf))
+	}
+
+	// Call close on the watcher even though it's not running.
+	w.Close()
+
+	wf = w.WatchedFiles()
+	fileList = w.retrieveFileList()
+
+	// Close will be a no-op so there will still be len(fileList) files.
+	if len(wf) != len(fileList) {
+		t.Fatalf("expected len of wf to be %d, got %d", len(fileList), len(wf))
+	}
+
+	// Set running to true.
+	w.running = true
+
+	// Now close the watcher.
+	go func() {
+		// Receive from the w.close channel to avoid a deadlock.
+		<-w.close
+	}()
+
+	w.Close()
+
+	wf = w.WatchedFiles()
+
+	// Close will be a no-op so there will still be len(fileList) files.
+	if len(wf) != 0 {
+		t.Fatalf("expected len of wf to be 0, got %d", len(wf))
+	}
+
 }
 
 func TestWatchedFiles(t *testing.T) {
