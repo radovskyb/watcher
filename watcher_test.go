@@ -229,6 +229,15 @@ func TestIgnore(t *testing.T) {
 	if len(w.files) != 0 {
 		t.Errorf("expected len(w.files) to be 0, got %d", len(w.files))
 	}
+
+	// Now try to add the ignored directory.
+	err = w.Add(testDir)
+	if err != nil {
+		t.Errorf("expected error to be nil, got %s", err)
+	}
+	if len(w.files) != 0 {
+		t.Errorf("expected len(w.files) to be 0, got %d", len(w.files))
+	}
 }
 
 func TestRemove(t *testing.T) {
@@ -476,6 +485,15 @@ func TestListFiles(t *testing.T) {
 	if fileList[fname].Name() != "file.txt" {
 		t.Errorf("expected fileList[%s].Name() to be file.txt, got %s",
 			fname, fileList[fname].Name())
+	}
+
+	// Try to call list on a file that's not a directory.
+	fileList, err := w.list(fname)
+	if err != nil {
+		t.Error("expected err to be nil")
+	}
+	if len(fileList) != 1 {
+		t.Errorf("expected len of file list to be 1, got %d", len(fileList))
 	}
 }
 
