@@ -21,6 +21,7 @@ func main() {
 	cmd := flag.String("cmd", "", "command to run when an event occurs")
 	listFiles := flag.Bool("list", false, "list watched files on start")
 	stdinPipe := flag.Bool("pipe", false, "pipe event's info to command's stdin")
+	keepalive := flag.Bool("keepalive", false, "keep alive when a cmd returns code != 0")
 
 	flag.Parse()
 
@@ -71,6 +72,10 @@ func main() {
 					c.Stdout = os.Stdout
 					c.Stderr = os.Stderr
 					if err := c.Run(); err != nil {
+						if !c.ProcessState.Success() && *keepalive {
+							log.Println(err)
+							continue
+						}
 						log.Fatalln(err)
 					}
 				}
