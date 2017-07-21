@@ -125,10 +125,12 @@ Usage of watcher:
     	watch dot files (default true)
   -interval string
     	watcher poll interval (default "100ms")
-  -list 
-    	list watched files on start (default false)
+  -keepalive
+    	keep alive when a cmd returns code != 0
+  -list
+    	list watched files on start
   -pipe
-    	pipe event's info to command's stdin (default false)
+    	pipe event's info to command's stdin
   -recursive
     	watch folders recursively (default true)
 ```
