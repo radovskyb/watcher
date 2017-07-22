@@ -11,6 +11,11 @@ Events contain the `os.FileInfo` of the file or directory that the event is base
 # Update
 Event.Path for Rename and Move events is now returned in the format of `fromPath -> toPath`
 
+[Installation](#installation)  
+[Features](#features)  
+[Example](#example)  
+[Contributing](#contributing)  
+[Watcher Command](#command)  
 
 #### Chmod event is not supported under windows.
 
