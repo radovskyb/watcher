@@ -144,7 +144,7 @@ func TestWatcherAdd(t *testing.T) {
 
 	w := New()
 
-	// Try to add a non-exising path.
+	// Try to add a non-existing path.
 	err := w.Add("-")
 	if err == nil {
 		t.Error("expected error to not be nil")
