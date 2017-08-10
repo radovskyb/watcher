@@ -138,6 +138,8 @@ Usage of watcher:
     	pipe event's info to command's stdin
   -recursive
     	watch folders recursively (default true)
+  -startcmd
+    	run the command when watcher starts
 ```
 
 All of the flags are optional and watcher can also be called by itself:
