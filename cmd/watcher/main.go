@@ -19,6 +19,7 @@ func main() {
 	recursive := flag.Bool("recursive", true, "watch folders recursively")
 	dotfiles := flag.Bool("dotfiles", true, "watch dot files")
 	cmd := flag.String("cmd", "", "command to run when an event occurs")
+	startcmd := flag.Bool("startcmd", false, "run the command when watcher starts")
 	listFiles := flag.Bool("list", false, "list watched files on start")
 	stdinPipe := flag.Bool("pipe", false, "pipe event's info to command's stdin")
 	keepalive := flag.Bool("keepalive", false, "keep alive when a cmd returns code != 0")
@@ -131,6 +132,17 @@ func main() {
 		fmt.Println("watcher closed")
 		close(closed)
 	}()
+
+	// Run the command before watcher starts if one was specified.
+	if *cmd != "" && *startcmd {
+		c := exec.Command(cmdName, cmdArgs...)
+		c.Stdin = os.Stdin
+		c.Stdout = os.Stdout
+		c.Stderr = os.Stderr
+		if err := c.Run(); err != nil {
+			log.Fatalln(err)
+		}
+	}
 
 	// Start the watching process.
 	if err := w.Start(parsedInterval); err != nil {
