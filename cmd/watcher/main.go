@@ -134,15 +134,17 @@ func main() {
 	}()
 
 	// Run the command before watcher starts if one was specified.
-	if *cmd != "" && *startcmd {
-		c := exec.Command(cmdName, cmdArgs...)
-		c.Stdin = os.Stdin
-		c.Stdout = os.Stdout
-		c.Stderr = os.Stderr
-		if err := c.Run(); err != nil {
-			log.Fatalln(err)
+	go func() {
+		if *cmd != "" && *startcmd {
+			c := exec.Command(cmdName, cmdArgs...)
+			c.Stdin = os.Stdin
+			c.Stdout = os.Stdout
+			c.Stderr = os.Stderr
+			if err := c.Run(); err != nil {
+				log.Fatalln(err)
+			}
 		}
-	}
+	}()
 
 	// Start the watching process.
 	if err := w.Start(parsedInterval); err != nil {
