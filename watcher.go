@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -94,7 +95,8 @@ type Watcher struct {
 	ignored      map[string]struct{}    // ignored files or directories.
 	ops          map[Op]struct{}        // Op filtering.
 	ignoreHidden bool                   // ignore hidden files or not.
-	maxEvents    int                    // max sent events per cycle
+	regexAllow   string                 // allow only files if match regex.
+	maxEvents    int                    // max sent events per cycle.
 }
 
 // New creates a new Watcher.
@@ -133,6 +135,12 @@ func (w *Watcher) IgnoreHiddenFiles(ignore bool) {
 	w.mu.Unlock()
 }
 
+func (w *Watcher) AllowByRegex(regex string) {
+	w.mu.Lock()
+	w.regexAllow = regex
+	w.mu.Unlock()
+}
+
 // FilterOps filters which event op types should be returned
 // when an event occurs.
 func (w *Watcher) FilterOps(ops ...Op) {
@@ -157,7 +165,9 @@ func (w *Watcher) Add(name string) (err error) {
 	// If name is on the ignored list or if hidden files are
 	// ignored and name is a hidden file or directory, simply return.
 	_, ignored := w.ignored[name]
-	if ignored || (w.ignoreHidden && strings.HasPrefix(name, ".")) {
+	allow, _ := regexp.MatchString(w.regexAllow, name)
+
+	if ignored || !allow || (w.ignoreHidden && strings.HasPrefix(name, ".")) {
 		return nil
 	}
 
@@ -203,7 +213,9 @@ func (w *Watcher) list(name string) (map[string]os.FileInfo, error) {
 	for _, fInfo := range fInfoList {
 		path := filepath.Join(name, fInfo.Name())
 		_, ignored := w.ignored[path]
-		if ignored || (w.ignoreHidden && strings.HasPrefix(fInfo.Name(), ".")) {
+		allow, _ := regexp.MatchString(w.regexAllow, fInfo.Name())
+
+		if ignored || !allow || (w.ignoreHidden && strings.HasPrefix(fInfo.Name(), ".")) {
 			continue
 		}
 		fileList[path] = fInfo
@@ -245,12 +257,20 @@ func (w *Watcher) listRecursive(name string) (map[string]os.FileInfo, error) {
 		// If path is ignored and it's a directory, skip the directory. If it's
 		// ignored and it's a single file, skip the file.
 		_, ignored := w.ignored[path]
+		// If file is not allowed by the regex, skip the file. Never skip the directory.
+
 		if ignored || (w.ignoreHidden && strings.HasPrefix(info.Name(), ".")) {
 			if info.IsDir() {
 				return filepath.SkipDir
 			}
 			return nil
 		}
+
+		allow, _ := regexp.MatchString(w.regexAllow, info.Name())
+		if !allow {
+			return nil
+		}
+
 		// Add the path and it's info to the file list.
 		fileList[path] = info
 		return nil
