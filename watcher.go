@@ -95,7 +95,7 @@ type Watcher struct {
 	ignored      map[string]struct{}    // ignored files or directories.
 	ops          map[Op]struct{}        // Op filtering.
 	ignoreHidden bool                   // ignore hidden files or not.
-	regexAllow   string                 // allow only files if match regex.
+	regFile      string                 // allow only files which matche regex.
 	maxEvents    int                    // max sent events per cycle.
 }
 
@@ -135,9 +135,11 @@ func (w *Watcher) IgnoreHiddenFiles(ignore bool) {
 	w.mu.Unlock()
 }
 
-func (w *Watcher) AllowByRegex(regex string) {
+// FilterFiles sets the watcher to allow only the files which match the regex.
+// Doesn't affect the directories.
+func (w *Watcher) FilterFiles(regex string) {
 	w.mu.Lock()
-	w.regexAllow = regex
+	w.regFile = regex
 	w.mu.Unlock()
 }
 
@@ -164,10 +166,10 @@ func (w *Watcher) Add(name string) (err error) {
 
 	// If name is on the ignored list or if hidden files are
 	// ignored and name is a hidden file or directory, simply return.
+	// If file is not allowed by regex, simply return.
 	_, ignored := w.ignored[name]
-	allow, _ := regexp.MatchString(w.regexAllow, name)
 
-	if ignored || !allow || (w.ignoreHidden && strings.HasPrefix(name, ".")) {
+	if ignored || (w.ignoreHidden && strings.HasPrefix(name, ".")) {
 		return nil
 	}
 
@@ -213,9 +215,13 @@ func (w *Watcher) list(name string) (map[string]os.FileInfo, error) {
 	for _, fInfo := range fInfoList {
 		path := filepath.Join(name, fInfo.Name())
 		_, ignored := w.ignored[path]
-		allow, _ := regexp.MatchString(w.regexAllow, fInfo.Name())
+		if ignored || (w.ignoreHidden && strings.HasPrefix(fInfo.Name(), ".")) {
+			continue
+		}
 
-		if ignored || !allow || (w.ignoreHidden && strings.HasPrefix(fInfo.Name(), ".")) {
+		// If the filename doesn't match the file allowing regex, skip it
+		allow, _ := regexp.MatchString(w.regFile, fInfo.Name())
+		if !allow && !fInfo.IsDir() {
 			continue
 		}
 		fileList[path] = fInfo
@@ -266,8 +272,9 @@ func (w *Watcher) listRecursive(name string) (map[string]os.FileInfo, error) {
 			return nil
 		}
 
-		allow, _ := regexp.MatchString(w.regexAllow, info.Name())
-		if !allow {
+		// If the filename doesn't match the file allowing regex, skip it
+		allow, _ := regexp.MatchString(w.regFile, info.Name())
+		if !allow && !info.IsDir() {
 			return nil
 		}
 

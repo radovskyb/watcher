@@ -385,6 +385,128 @@ func TestIgnoreHiddenFiles(t *testing.T) {
 	}
 }
 
+func TestFilterFiles(t *testing.T) {
+	testDir, teardown := setup(t)
+	defer teardown()
+
+	w := New()
+	w.FilterFiles("file.txt")
+
+	if err := w.Add(testDir); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(w.files) != 3 {
+		t.Errorf("expected len(w.files) to be 3, got %d", len(w.files))
+	}
+
+	fileTxt := filepath.Join(testDir, "file.txt")
+	if _, found := w.files[fileTxt]; !found {
+		t.Errorf("expected to find %s", fileTxt)
+	}
+
+	if w.files[fileTxt].Name() != "file.txt" {
+		t.Errorf("expected w.files[%q].Name() to be file.txt, got %s",
+			fileTxt, w.files[fileTxt].Name())
+	}
+
+	dirTwo := filepath.Join(testDir, "testDirTwo")
+	if _, found := w.files[dirTwo]; !found {
+		t.Errorf("expected to find %s directory", dirTwo)
+	}
+
+	if w.files[dirTwo].Name() != "testDirTwo" {
+		t.Errorf("expected w.files[%q].Name() to be testDirTwo, got %s",
+			dirTwo, w.files[dirTwo].Name())
+	}
+
+	dotfile := filepath.Join(testDir, ".dotfile")
+	if _, found := w.files[dotfile]; found {
+		t.Errorf("expected to not find %s", dotfile)
+	}
+
+	file1 := filepath.Join(testDir, "file_1.txt")
+	if _, found := w.files[file1]; found {
+		t.Errorf("expected to not find %s", file1)
+	}
+
+	file2 := filepath.Join(testDir, "file_2.txt")
+	if _, found := w.files[file2]; found {
+		t.Errorf("expected to not find %s", file2)
+	}
+
+	file3 := filepath.Join(testDir, "file_3.txt")
+	if _, found := w.files[file3]; found {
+		t.Errorf("expected to not find %s", file3)
+	}
+
+	fileRecursive := filepath.Join(testDir, "testDirTwo", "file_recursive.txt")
+	if _, found := w.files[fileRecursive]; found {
+		t.Errorf("expected to not find %s", fileRecursive)
+	}
+}
+
+func TestFilterFilesRecursive(t *testing.T) {
+	testDir, teardown := setup(t)
+	defer teardown()
+
+	w := New()
+	w.FilterFiles("recursive.txt")
+
+	if err := w.AddRecursive(testDir); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(w.files) != 3 {
+		t.Errorf("expected len(w.files) to be 3, got %d", len(w.files))
+	}
+
+	dirTwo := filepath.Join(testDir, "testDirTwo")
+	if _, found := w.files[dirTwo]; !found {
+		t.Errorf("expected to find %s directory", dirTwo)
+	}
+
+	if w.files[dirTwo].Name() != "testDirTwo" {
+		t.Errorf("expected w.files[%q].Name() to be testDirTwo, got %s",
+			"testDirTwo", w.files[dirTwo].Name())
+	}
+
+	fileRecursive := filepath.Join(dirTwo, "file_recursive.txt")
+	if _, found := w.files[fileRecursive]; !found {
+		t.Errorf("expected to find %s directory", fileRecursive)
+	}
+
+	if w.files[fileRecursive].Name() != "file_recursive.txt" {
+		t.Errorf("expected w.files[%q].Name() to be file_recursive.txt, got %s",
+			fileRecursive, w.files[fileRecursive].Name())
+	}
+
+	dotfile := filepath.Join(testDir, ".dotfile")
+	if _, found := w.files[dotfile]; found {
+		t.Errorf("expected to not find %s", dotfile)
+	}
+
+	file := filepath.Join(testDir, "file.txt")
+	if _, found := w.files[file]; found {
+		t.Errorf("expected to not find %s", file)
+	}
+
+	file1 := filepath.Join(testDir, "file_1.txt")
+	if _, found := w.files[file1]; found {
+		t.Errorf("expected to not find %s", file1)
+	}
+
+	file2 := filepath.Join(testDir, "file_2.txt")
+	if _, found := w.files[file2]; found {
+		t.Errorf("expected to not find %s", file2)
+	}
+
+	file3 := filepath.Join(testDir, "file_3.txt")
+	if _, found := w.files[file3]; found {
+		t.Errorf("expected to not find %s", file3)
+	}
+}
+
 func TestWatcherAddRecursive(t *testing.T) {
 	testDir, teardown := setup(t)
 	defer teardown()
