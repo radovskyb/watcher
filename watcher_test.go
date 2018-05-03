@@ -1099,9 +1099,3 @@ func TestOpsString(t *testing.T) {
 		}
 	}
 }
-
-func TestAllowRegex(t *testing.T) {
-	// Make sure that files are not watched via Add
-	// Make sure that files are not watched via Add recursive
-	// Make sure that directory are parsed via Add recursive
-}
