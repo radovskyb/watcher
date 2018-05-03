@@ -95,7 +95,7 @@ type Watcher struct {
 	ignored      map[string]struct{}    // ignored files or directories.
 	ops          map[Op]struct{}        // Op filtering.
 	ignoreHidden bool                   // ignore hidden files or not.
-	regFile      string                 // allow only files which matche regex.
+	regFile      string                 // allow only files which match regex.
 	maxEvents    int                    // max sent events per cycle.
 }
 
