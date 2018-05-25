@@ -347,7 +347,7 @@ func (w *Watcher) Ignore(paths ...string) (err error) {
 	return nil
 }
 
-// WatchedFiles retruns a map of files added to a Watcher.
+// WatchedFiles returns a map of files added to a Watcher.
 func (w *Watcher) WatchedFiles() map[string]os.FileInfo {
 	w.mu.Lock()
 	defer w.mu.Unlock()
