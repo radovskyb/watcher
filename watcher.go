@@ -3,7 +3,6 @@ package watcher
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -158,7 +157,7 @@ func (w *Watcher) Add(name string) (err error) {
 	// If name is on the ignored list or if hidden files are
 	// ignored and name is a hidden file or directory, simply return.
 	_, ignored := w.ignored[name]
-	if ignored || (w.ignoreHidden && strings.HasPrefix(name, ".")) {
+	if ignored || (w.ignoreHidden && isHiddenFile(name)) {
 		return nil
 	}
 
@@ -177,39 +176,59 @@ func (w *Watcher) Add(name string) (err error) {
 	return nil
 }
 
+func (w *Watcher) listRecursive(name string) (map[string]os.FileInfo, error) {
+	files, err := w.listFiles(name, true)
+	if err != nil {
+		return nil, err
+	}
+
+	return files, nil
+}
+
 func (w *Watcher) list(name string) (map[string]os.FileInfo, error) {
+	files, err := w.listFiles(name, false)
+	if err != nil {
+		return nil, err
+	}
+
+	return files, nil
+}
+
+func (w *Watcher) listFiles(name string, recursive bool) (map[string]os.FileInfo, error) {
 	fileList := make(map[string]os.FileInfo)
 
-	// Make sure name exists.
-	stat, err := os.Stat(name)
-	if err != nil {
-		return nil, err
-	}
-
-	fileList[name] = stat
-
-	// If it's not a directory, just return.
-	if !stat.IsDir() {
-		return fileList, nil
-	}
-
-	// It's a directory.
-	fInfoList, err := ioutil.ReadDir(name)
-	if err != nil {
-		return nil, err
-	}
-	// Add all of the files in the directory to the file list as long
-	// as they aren't on the ignored list or are hidden files if ignoreHidden
-	// is set to true.
-	for _, fInfo := range fInfoList {
-		path := filepath.Join(name, fInfo.Name())
-		_, ignored := w.ignored[path]
-		if ignored || (w.ignoreHidden && strings.HasPrefix(fInfo.Name(), ".")) {
-			continue
+	return fileList, filepath.Walk(name, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
 		}
-		fileList[path] = fInfo
-	}
-	return fileList, nil
+
+		// If path is ignored and it's a directory, skip the directory. If it's
+		// ignored and it's a single file, skip the file.
+		_, ignored := w.ignored[path]
+		if ignored || (w.ignoreHidden && isHiddenFile(info.Name())) {
+			if info.IsDir() {
+				return filepath.SkipDir
+			}
+
+			return nil
+		}
+
+		// When performing a shallow listing, don't recurse into non-root directories.
+		if path != name {
+			if !recursive && info.IsDir() {
+				fileList[path] = info
+				return filepath.SkipDir
+			}
+		}
+
+		// Add the path and its info to the file list.
+		fileList[path] = info
+		return nil
+	})
+}
+
+func isHiddenFile(name string) bool {
+	return strings.HasPrefix(name, ".")
 }
 
 // AddRecursive adds either a single file or directory recursively to the file list.
@@ -234,28 +253,6 @@ func (w *Watcher) AddRecursive(name string) (err error) {
 	w.names[name] = true
 
 	return nil
-}
-
-func (w *Watcher) listRecursive(name string) (map[string]os.FileInfo, error) {
-	fileList := make(map[string]os.FileInfo)
-
-	return fileList, filepath.Walk(name, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		// If path is ignored and it's a directory, skip the directory. If it's
-		// ignored and it's a single file, skip the file.
-		_, ignored := w.ignored[path]
-		if ignored || (w.ignoreHidden && strings.HasPrefix(info.Name(), ".")) {
-			if info.IsDir() {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		// Add the path and it's info to the file list.
-		fileList[path] = info
-		return nil
-	})
 }
 
 // Remove removes either a single file or directory from the file's list.
