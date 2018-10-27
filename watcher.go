@@ -350,7 +350,12 @@ func (w *Watcher) WatchedFiles() map[string]os.FileInfo {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	return w.files
+	files := make(map[string]os.FileInfo)
+	for k, v := range w.files {
+		files[k] = v
+	}
+
+	return files
 }
 
 // fileInfo is an implementation of os.FileInfo that can be used
