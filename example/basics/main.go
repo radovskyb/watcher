@@ -20,6 +20,13 @@ func main() {
 	// Uncomment to only notify rename and move events.
 	// w.FilterOps(watcher.Rename, watcher.Move)
 
+	// Uncomment to filter files based on a regular expression.
+	//
+	// Only files that match the regular expression during file listing
+	// will be watched.
+	// r := regexp.MustCompile("^abc$")
+	// w.AddFilterHook(watcher.RegexFilterHook(r, false))
+
 	go func() {
 		for {
 			select {

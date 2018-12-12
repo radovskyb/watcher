@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -24,6 +25,10 @@ var (
 	// ErrWatchedFileDeleted is an error that occurs when a file or folder that was
 	// being watched has been deleted.
 	ErrWatchedFileDeleted = errors.New("error: watched file or folder deleted")
+
+	// ErrSkip is less of an error, but more of a way for path hooks to skip a file or
+	// directory.
+	ErrSkip = errors.New("error: skipping file")
 )
 
 // An Op is a type that is used to describe what type
@@ -78,7 +83,31 @@ func (e Event) String() string {
 		pathType = "DIRECTORY"
 	}
 	return fmt.Sprintf("%s %q %s [%s]", pathType, e.Name(), e.Op, e.Path)
+}
 
+// FilterFileHookFunc is a function that is called to filter files during listings.
+// If a file is ok to be listed, nil is returned otherwise ErrSkip is returned.
+type FilterFileHookFunc func(info os.FileInfo, fullPath string) error
+
+// RegexFilterHook is a function that accepts or rejects a file
+// for listing based on whether it's filename or full path matches
+// a regular expression.
+func RegexFilterHook(r *regexp.Regexp, useFullPath bool) FilterFileHookFunc {
+	return func(info os.FileInfo, fullPath string) error {
+		str := info.Name()
+
+		if useFullPath {
+			str = fullPath
+		}
+
+		// Match
+		if r.MatchString(str) {
+			return nil
+		}
+
+		// No match.
+		return ErrSkip
+	}
 }
 
 // Watcher describes a process that watches files for changes.
@@ -91,6 +120,7 @@ type Watcher struct {
 
 	// mu protects the following.
 	mu           *sync.Mutex
+	ffh          []FilterFileHookFunc
 	running      bool
 	names        map[string]bool        // bool for recursive or not.
 	files        map[string]os.FileInfo // map of files.
@@ -125,6 +155,13 @@ func New() *Watcher {
 func (w *Watcher) SetMaxEvents(delta int) {
 	w.mu.Lock()
 	w.maxEvents = delta
+	w.mu.Unlock()
+}
+
+// AddFilterHook
+func (w *Watcher) AddFilterHook(f FilterFileHookFunc) {
+	w.mu.Lock()
+	w.ffh = append(w.ffh, f)
 	w.mu.Unlock()
 }
 
@@ -203,12 +240,24 @@ func (w *Watcher) list(name string) (map[string]os.FileInfo, error) {
 	// Add all of the files in the directory to the file list as long
 	// as they aren't on the ignored list or are hidden files if ignoreHidden
 	// is set to true.
+outer:
 	for _, fInfo := range fInfoList {
 		path := filepath.Join(name, fInfo.Name())
 		_, ignored := w.ignored[path]
 		if ignored || (w.ignoreHidden && strings.HasPrefix(fInfo.Name(), ".")) {
 			continue
 		}
+
+		for _, f := range w.ffh {
+			err := f(fInfo, path)
+			if err == ErrSkip {
+				continue outer
+			}
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		fileList[path] = fInfo
 	}
 	return fileList, nil
@@ -245,6 +294,17 @@ func (w *Watcher) listRecursive(name string) (map[string]os.FileInfo, error) {
 		if err != nil {
 			return err
 		}
+
+		for _, f := range w.ffh {
+			err := f(info, path)
+			if err == ErrSkip {
+				return nil
+			}
+			if err != nil {
+				return err
+			}
+		}
+
 		// If path is ignored and it's a directory, skip the directory. If it's
 		// ignored and it's a single file, skip the file.
 		_, ignored := w.ignored[path]
