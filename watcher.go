@@ -69,14 +69,16 @@ type Event struct {
 // String returns a string depending on what type of event occurred and the
 // file name associated with the event.
 func (e Event) String() string {
-	if e.FileInfo != nil {
-		pathType := "FILE"
-		if e.IsDir() {
-			pathType = "DIRECTORY"
-		}
-		return fmt.Sprintf("%s %q %s [%s]", pathType, e.Name(), e.Op, e.Path)
+	if e.FileInfo == nil {
+		return "???"
 	}
-	return "???"
+
+	pathType := "FILE"
+	if e.IsDir() {
+		pathType = "DIRECTORY"
+	}
+	return fmt.Sprintf("%s %q %s [%s]", pathType, e.Name(), e.Op, e.Path)
+
 }
 
 // Watcher describes a process that watches files for changes.
