@@ -268,6 +268,11 @@ func TestRemove(t *testing.T) {
 // TODO: Test remove recursive function.
 
 func TestIgnoreHiddenFilesRecursive(t *testing.T) {
+	// TODO: Write tests for ignore hidden on windows.
+	if runtime.GOOS == "windows" {
+		return
+	}
+
 	testDir, teardown := setup(t)
 	defer teardown()
 
@@ -327,6 +332,11 @@ func TestIgnoreHiddenFilesRecursive(t *testing.T) {
 }
 
 func TestIgnoreHiddenFiles(t *testing.T) {
+	// TODO: Write tests for ignore hidden on windows.
+	if runtime.GOOS == "windows" {
+		return
+	}
+
 	testDir, teardown := setup(t)
 	defer teardown()
 
