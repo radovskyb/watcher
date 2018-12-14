@@ -571,6 +571,15 @@ func TestEventAddFile(t *testing.T) {
 				files[event.Name()] = true
 				events++
 
+				// Check Path and OldPath content
+				newFile := filepath.Join(testDir, event.Name())
+				if event.Path != newFile {
+					t.Errorf("Event.Path should be %s but got %s", newFile, event.Path)
+				}
+				if event.OldPath != "" {
+					t.Errorf("Event.OldPath should be empty on create, but got %s", event.OldPath)
+				}
+
 				if events == len(files) {
 					return
 				}
@@ -668,6 +677,9 @@ func TestEventRenameFile(t *testing.T) {
 	testDir, teardown := setup(t)
 	defer teardown()
 
+	srcFilename := "file.txt"
+	dstFilename := "file1.txt"
+
 	w := New()
 	w.FilterOps(Rename)
 
@@ -678,8 +690,8 @@ func TestEventRenameFile(t *testing.T) {
 
 	// Rename a file.
 	if err := os.Rename(
-		filepath.Join(testDir, "file.txt"),
-		filepath.Join(testDir, "file1.txt"),
+		filepath.Join(testDir, srcFilename),
+		filepath.Join(testDir, dstFilename),
 	); err != nil {
 		t.Error(err)
 	}
@@ -695,6 +707,17 @@ func TestEventRenameFile(t *testing.T) {
 			if event.Op != Rename {
 				t.Errorf("expected event to be Rename, got %s", event.Op)
 			}
+
+			// Check Path and OldPath content
+			oldFile := filepath.Join(testDir, srcFilename)
+			newFile := filepath.Join(testDir, dstFilename)
+			if event.Path != newFile {
+				t.Errorf("Event.Path should be %s but got %s", newFile, event.Path)
+			}
+			if event.OldPath != oldFile {
+				t.Errorf("Event.OldPath should %s but got %s", oldFile, event.OldPath)
+			}
+
 		case <-time.After(time.Millisecond * 250):
 			t.Fatal("received no rename event")
 		}
