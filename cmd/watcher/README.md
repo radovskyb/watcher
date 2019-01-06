@@ -56,3 +56,26 @@ watcher -cmd="python script.py" -pipe=true
 ```
 
 Now when changes are detected, the event's info will be output from the running python script.
+
+#Config file
+All of the command line flags can be set using a json config file like below. Any config values that are
+not declared will use its default values instead.
+
+```json
+{
+	"recursive" : false,
+	"dotfiles": false,
+	"cmd": "python script.py",
+	"interval": "250ms",
+	"listfiles": true, 
+	"pipe": true,
+	"keepalive": true
+}
+
+```
+You can use the config file by supplying the full path and name of config file to `-config` comand line flag 
+like in the example below.
+
+```shell
+watcher -config="watcher.json"
+```
