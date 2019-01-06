@@ -172,6 +172,7 @@ watcher -cmd="python script.py" -pipe=true
 Now when changes are detected, the event's info will be output from the running python script.
 
 #Config file
+
 All of the command line flags can be set using a json config file like below. Any config values that are
 not declared will use its default values instead.
 
