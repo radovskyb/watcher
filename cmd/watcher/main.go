@@ -25,7 +25,7 @@ func main() {
 	listFiles := config.ListFiles
 	stdinPipe := config.StdinPipe
 	keepalive := config.Keepalive
-	ignore := config.ignore
+	ignore := config.Ignore
 
 	flag.Parse()
 
