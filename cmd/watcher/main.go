@@ -11,8 +11,8 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/t14/watcher"
-	"github.com/t14/watcher/cmd/watcher/config"
+	"github.com/radovskyb/watcher"
+	"github.com/radovskyb/watcher/cmd/watcher/config"
 )
 
 func main() {

@@ -3,7 +3,7 @@ package config_test
 import (
 	"testing"
 
-	"github.com/t14/watcher/cmd/watcher/config"
+	"github.com/radovskyb/watcher/cmd/watcher/config"
 )
 
 type Defaults = struct {
