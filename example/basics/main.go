@@ -11,14 +11,21 @@ import (
 func main() {
 	w := watcher.New()
 
-	// SetMaxEvents to 1 to allow at most 1 event's to be received
+	// Uncomment to use SetMaxEvents set to 1 to allow at most 1 event to be received
 	// on the Event channel per watching cycle.
 	//
 	// If SetMaxEvents is not set, the default is to send all events.
-	w.SetMaxEvents(1)
+	// w.SetMaxEvents(1)
 
-	// Only notify rename and move events.
-	w.FilterOps(watcher.Rename, watcher.Move)
+	// Uncomment to only notify rename and move events.
+	// w.FilterOps(watcher.Rename, watcher.Move)
+
+	// Uncomment to filter files based on a regular expression.
+	//
+	// Only files that match the regular expression during file listing
+	// will be watched.
+	// r := regexp.MustCompile("^abc$")
+	// w.AddFilterHook(watcher.RegexFilterHook(r, false))
 
 	go func() {
 		for {

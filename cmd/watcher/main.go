@@ -55,6 +55,21 @@ func main() {
 	w := watcher.New()
 	w.IgnoreHiddenFiles(!dotfiles)
 
+	// Get any of the paths to ignore.
+	ignoredPaths := strings.Split(ignore, ",")
+
+	for _, path := range ignoredPaths {
+		trimmed := strings.TrimSpace(path)
+		if trimmed == "" {
+			continue
+		}
+
+		err := w.Ignore(trimmed)
+		if err != nil {
+			log.Fatalln(err)
+		}
+	}
+
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
