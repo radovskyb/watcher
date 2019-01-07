@@ -17,6 +17,7 @@ type Config struct {
 	ListFiles bool   `json:"listfiles"`
 	StdinPipe bool   `json:"pipe"`
 	Keepalive bool   `json:"keepalive"`
+	Ignore    string `json:"ignore"`
 }
 
 var c Config
@@ -33,6 +34,7 @@ func GetConfig() Config {
 	listFiles := flag.Bool("list", false, "list watched files on start")
 	stdinPipe := flag.Bool("pipe", false, "pipe event's info to command's stdin")
 	keepalive := flag.Bool("keepalive", false, "keep alive when a cmd returns code != 0")
+	ignore := flag.String("ignore", "", "comma separated list of paths to ignore")
 
 	flag.Parse()
 
@@ -62,6 +64,7 @@ func GetConfig() Config {
 		c.setListFiles(data.ListFiles)
 		c.setPipe(data.StdinPipe)
 		c.setKeepAlive(data.Keepalive)
+		c.setIgnore(data.Ignore)
 
 	} else {
 		//Use CLI values
@@ -73,6 +76,7 @@ func GetConfig() Config {
 		c.ListFiles = *listFiles
 		c.StdinPipe = *stdinPipe
 		c.Keepalive = *keepalive
+		c.Ignore = *ignore
 	}
 
 	return c
@@ -131,5 +135,12 @@ func (c *Config) setKeepAlive(keepAlive bool) {
 	c.Keepalive = false
 	if keepAlive {
 		c.Keepalive = true
+	}
+}
+
+func (c *Config) setIgnore(ignore string) {
+	c.Ignore = ""
+	if len(ignore) > 0 {
+		c.Ignore = ignore
 	}
 }

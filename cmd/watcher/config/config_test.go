@@ -60,3 +60,9 @@ func TestDefaultKeepAlive(t *testing.T) {
 		t.Error("Failed to set default KeepAlive value")
 	}
 }
+
+func TestDefaultIgnore(t *testing.T) {
+	if c.Ignore != "" {
+		t.Error("Failed to set default file ignore value")
+	}
+}
