@@ -497,7 +497,7 @@ func (w *Watcher) retrieveFileList() map[string]os.FileInfo {
 				if os.IsNotExist(err) {
 					w.Error <- ErrWatchedFileDeleted
 					w.mu.Unlock()
-					w.RemoveRecursive(name)
+					w.RemoveRecursive(err.(*os.PathError).Path)
 					w.mu.Lock()
 				} else {
 					w.Error <- err
@@ -509,7 +509,7 @@ func (w *Watcher) retrieveFileList() map[string]os.FileInfo {
 				if os.IsNotExist(err) {
 					w.Error <- ErrWatchedFileDeleted
 					w.mu.Unlock()
-					w.Remove(name)
+					w.Remove(err.(*os.PathError).Path)
 					w.mu.Lock()
 				} else {
 					w.Error <- err
