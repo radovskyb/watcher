@@ -156,7 +156,10 @@ func main() {
 			c.Stdin = os.Stdin
 			c.Stdout = os.Stdout
 			c.Stderr = os.Stderr
-			if err := c.Run(); err != nil {
+			err := c.Run()
+			if err != nil && *keepalive {
+				log.Println(err)
+			} else if err != nil {
 				log.Fatalln(err)
 			}
 		}
