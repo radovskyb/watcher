@@ -24,6 +24,7 @@ func main() {
 	stdinPipe := flag.Bool("pipe", false, "pipe event's info to command's stdin")
 	keepalive := flag.Bool("keepalive", false, "keep alive when a cmd returns code != 0")
 	ignore := flag.String("ignore", "", "comma separated list of paths to ignore")
+	debounce := flag.String("debounce", "0ms", "debounce the watch events for specified duration")
 
 	flag.Parse()
 
@@ -68,6 +69,11 @@ func main() {
 		}
 	}
 
+	debounceDuration, err := time.ParseDuration(*debounce)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
@@ -77,6 +83,9 @@ func main() {
 			case event := <-w.Event:
 				// Print the event's info.
 				fmt.Println(event)
+				if debounceDuration > 0 {
+					debounceEvents(debounceDuration, w.Event)
+				}
 
 				// Run the command if one was specified.
 				if *cmd != "" {
@@ -150,8 +159,8 @@ func main() {
 	}()
 
 	// Run the command before watcher starts if one was specified.
-	go func() {
-		if *cmd != "" && *startcmd {
+	if *cmd != "" && *startcmd {
+		go func() {
 			c := exec.Command(cmdName, cmdArgs...)
 			c.Stdin = os.Stdin
 			c.Stdout = os.Stdout
@@ -159,8 +168,8 @@ func main() {
 			if err := c.Run(); err != nil {
 				log.Fatalln(err)
 			}
-		}
-	}()
+		}()
+	}
 
 	// Start the watching process.
 	if err := w.Start(parsedInterval); err != nil {
@@ -168,4 +177,16 @@ func main() {
 	}
 
 	<-closed
+}
+
+func debounceEvents(t time.Duration, c <-chan watcher.Event) {
+	for timeout := time.After(t); ; {
+		select {
+		case event := <-c:
+			// Print the event's info.
+			fmt.Println(event)
+		case <-timeout:
+			return
+		}
+	}
 }
