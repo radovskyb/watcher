@@ -577,6 +577,7 @@ func (w *Watcher) Start(d time.Duration) error {
 		for {
 			select {
 			case <-w.close:
+				<-done
 				close(cancel)
 				close(w.Closed)
 				return nil
