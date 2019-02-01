@@ -554,6 +554,8 @@ func (w *Watcher) Start(d time.Duration) error {
 		// current cycle's method has finished executing.
 		done := make(chan struct{})
 
+		stopCh := make(chan struct{})
+
 		// Any events that are found are first piped to evt before
 		// being sent to the main Event channel.
 		evt := make(chan Event)
@@ -566,7 +568,13 @@ func (w *Watcher) Start(d time.Duration) error {
 
 		// Look for events.
 		go func() {
-			w.pollEvents(fileList, evt, cancel)
+			awake := time.After(time.Millisecond * 100)
+			select {
+			case <-stopCh:
+				break
+			case <-awake:
+				w.pollEvents(fileList, evt, cancel)
+			}
 			done <- struct{}{}
 		}()
 
@@ -577,6 +585,7 @@ func (w *Watcher) Start(d time.Duration) error {
 		for {
 			select {
 			case <-w.close:
+				close(stopCh)
 				<-done
 				close(cancel)
 				close(w.Closed)
