@@ -177,7 +177,7 @@ func (w *Watcher) IgnoreHiddenFiles(ignore bool) {
 // when an event occurs.
 func (w *Watcher) FilterOps(ops ...Op) {
 	w.mu.Lock()
-	w.ops = make(map[Op]struct{})
+	w.ops = make(map[Op]struct{}, len(ops))
 	for _, op := range ops {
 		w.ops[op] = struct{}{}
 	}
@@ -432,7 +432,7 @@ func (w *Watcher) WatchedFiles() map[string]os.FileInfo {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	files := make(map[string]os.FileInfo)
+	files := make(map[string]os.FileInfo, len(w.files))
 	for k, v := range w.files {
 		files[k] = v
 	}
@@ -600,6 +600,7 @@ func (w *Watcher) Start(d time.Duration) error {
 				numEvents++
 				if w.maxEvents > 0 && numEvents > w.maxEvents {
 					close(cancel)
+					close(evt)
 					break inner
 				}
 				w.Event <- event
@@ -612,6 +613,7 @@ func (w *Watcher) Start(d time.Duration) error {
 		w.mu.Lock()
 		w.files = fileList
 		w.mu.Unlock()
+		fileList = nil
 
 		// Sleep and then continue to the next loop iteration.
 		time.Sleep(d)
