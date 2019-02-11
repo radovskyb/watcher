@@ -92,7 +92,7 @@ type FilterFileHookFunc func(info os.FileInfo, fullPath string) error
 // RegexFilterHook is a function that accepts or rejects a file
 // for listing based on whether it's filename or full path matches
 // a regular expression.
-func RegexFilterHook(r *regexp.Regexp, useFullPath bool) FilterFileHookFunc {
+func regexFilterHookFN(r *regexp.Regexp, useFullPath bool, reverse bool) FilterFileHookFunc {
 	return func(info os.FileInfo, fullPath string) error {
 		str := info.Name()
 
@@ -101,13 +101,25 @@ func RegexFilterHook(r *regexp.Regexp, useFullPath bool) FilterFileHookFunc {
 		}
 
 		// Match
-		if r.MatchString(str) {
+		matched := r.MatchString(str)
+		if reverse {
+			matched = !matched
+		}
+		if matched {
 			return nil
 		}
 
 		// No match.
 		return ErrSkip
 	}
+}
+
+func RegexFilterHook(r *regexp.Regexp, useFullPath bool) FilterFileHookFunc {
+	return regexFilterHookFN(r, useFullPath, false)
+}
+
+func RegexIgnoreHook(r *regexp.Regexp, useFullPath bool) FilterFileHookFunc {
+	return regexFilterHookFN(r, useFullPath, true)
 }
 
 // Watcher describes a process that watches files for changes.
