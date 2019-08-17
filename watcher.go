@@ -600,7 +600,7 @@ func (w *Watcher) pollEvents(files map[string]os.FileInfo, evt chan Event,
 		select {
 		case <-cancel:
 			return
-		case evt <- Event{Remove, "", path, info}:
+		case evt <- Event{Remove, path, path, info}:
 		}
 	}
 }
