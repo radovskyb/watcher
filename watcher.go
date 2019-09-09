@@ -657,7 +657,7 @@ func (w *Watcher) pollEvents(files map[string]os.FileInfo, evt chan Event,
 					Op:       Move,
 					Path:     path2,
 					OldPath:  path1,
-					FileInfo: info1,
+					FileInfo: info2,
 				}
 				// If they are from the same directory, it's a rename
 				// instead of a move event.
