@@ -12,18 +12,20 @@ import (
 	"unicode"
 
 	"github.com/radovskyb/watcher"
+	"github.com/radovskyb/watcher/cmd/watcher/config"
 )
 
 func main() {
-	interval := flag.String("interval", "100ms", "watcher poll interval")
-	recursive := flag.Bool("recursive", true, "watch folders recursively")
-	dotfiles := flag.Bool("dotfiles", true, "watch dot files")
-	cmd := flag.String("cmd", "", "command to run when an event occurs")
-	startcmd := flag.Bool("startcmd", false, "run the command when watcher starts")
-	listFiles := flag.Bool("list", false, "list watched files on start")
-	stdinPipe := flag.Bool("pipe", false, "pipe event's info to command's stdin")
-	keepalive := flag.Bool("keepalive", false, "keep alive when a cmd returns code != 0")
-	ignore := flag.String("ignore", "", "comma separated list of paths to ignore")
+	config := config.GetConfig()
+	interval := config.Interval
+	recursive := config.Recursive
+	dotfiles := config.Dotfiles
+	cmd := config.Cmd
+	startcmd := config.Startcmd
+	listFiles := config.ListFiles
+	stdinPipe := config.StdinPipe
+	keepalive := config.Keepalive
+	ignore := config.Ignore
 
 	flag.Parse()
 
@@ -41,8 +43,8 @@ func main() {
 
 	var cmdName string
 	var cmdArgs []string
-	if *cmd != "" {
-		split := strings.FieldsFunc(*cmd, unicode.IsSpace)
+	if cmd != "" {
+		split := strings.FieldsFunc(cmd, unicode.IsSpace)
 		cmdName = split[0]
 		if len(split) > 1 {
 			cmdArgs = split[1:]
@@ -51,10 +53,10 @@ func main() {
 
 	// Create a new Watcher with the specified options.
 	w := watcher.New()
-	w.IgnoreHiddenFiles(!*dotfiles)
+	w.IgnoreHiddenFiles(!dotfiles)
 
 	// Get any of the paths to ignore.
-	ignoredPaths := strings.Split(*ignore, ",")
+	ignoredPaths := strings.Split(ignore, ",")
 
 	for _, path := range ignoredPaths {
 		trimmed := strings.TrimSpace(path)
@@ -79,9 +81,9 @@ func main() {
 				fmt.Println(event)
 
 				// Run the command if one was specified.
-				if *cmd != "" {
+				if cmd != "" {
 					c := exec.Command(cmdName, cmdArgs...)
-					if *stdinPipe {
+					if stdinPipe {
 						c.Stdin = strings.NewReader(event.String())
 					} else {
 						c.Stdin = os.Stdin
@@ -89,7 +91,7 @@ func main() {
 					c.Stdout = os.Stdout
 					c.Stderr = os.Stderr
 					if err := c.Run(); err != nil {
-						if (c.ProcessState == nil || !c.ProcessState.Success()) && *keepalive {
+						if (c.ProcessState == nil || !c.ProcessState.Success()) && keepalive {
 							log.Println(err)
 							continue
 						}
@@ -110,7 +112,7 @@ func main() {
 
 	// Add the files and folders specified.
 	for _, file := range files {
-		if *recursive {
+		if recursive {
 			if err := w.AddRecursive(file); err != nil {
 				log.Fatalln(err)
 			}
@@ -122,7 +124,7 @@ func main() {
 	}
 
 	// Print a list of all of the files and folders being watched.
-	if *listFiles {
+	if listFiles {
 		for path, f := range w.WatchedFiles() {
 			fmt.Printf("%s: %s\n", path, f.Name())
 		}
@@ -132,7 +134,7 @@ func main() {
 	fmt.Printf("Watching %d files\n", len(w.WatchedFiles()))
 
 	// Parse the interval string into a time.Duration.
-	parsedInterval, err := time.ParseDuration(*interval)
+	parsedInterval, err := time.ParseDuration(interval)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -151,7 +153,7 @@ func main() {
 
 	// Run the command before watcher starts if one was specified.
 	go func() {
-		if *cmd != "" && *startcmd {
+		if cmd != "" && startcmd {
 			c := exec.Command(cmdName, cmdArgs...)
 			c.Stdin = os.Stdin
 			c.Stdout = os.Stdout
