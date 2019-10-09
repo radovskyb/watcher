@@ -117,6 +117,8 @@ func main() {
 	if err := w.Start(time.Millisecond * 100); err != nil {
 		log.Fatalln(err)
 	}
+	
+	go w.Start(100 * time.Millisecond)
 }
 ```
 
