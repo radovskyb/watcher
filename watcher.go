@@ -605,7 +605,19 @@ func (w *Watcher) Start(d time.Duration) error {
 		w.mu.Unlock()
 
 		// Sleep and then continue to the next loop iteration.
-		time.Sleep(d)
+		// since the sleep duration may be very long time,
+		// so we use this tricks replaced the orig code `time.Sleep(d)`,
+		// to make w.close channel can recv while in 'Sleeping time'
+	sleepLoop:
+		for {
+			select {
+			case <-w.close:
+				close(cancel)
+				return nil
+			case <-time.After(d):
+				break sleepLoop
+			}
+		} //end Sleep for
 	}
 }
 
