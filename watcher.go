@@ -413,17 +413,24 @@ func (w *Watcher) RemoveRecursive(name string) (err error) {
 // For files that are already added, Ignore removes them.
 func (w *Watcher) Ignore(paths ...string) (err error) {
 	for _, path := range paths {
-		path, err = filepath.Abs(path)
+		matches, err := filepath.Glob(path);
 		if err != nil {
 			return err
 		}
-		// Remove any of the paths that were already added.
-		if err := w.RemoveRecursive(path); err != nil {
-			return err
+
+		for _, m := range matches {
+			m, err = filepath.Abs(m)
+			if err != nil {
+				return err
+			}
+			// Remove any of the paths that were already added.
+			if err := w.RemoveRecursive(m); err != nil {
+				return err
+			}
+			w.mu.Lock()
+			w.ignored[m] = struct{}{}
+			w.mu.Unlock()
 		}
-		w.mu.Lock()
-		w.ignored[path] = struct{}{}
-		w.mu.Unlock()
 	}
 	return nil
 }
