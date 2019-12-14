@@ -1,10 +1,13 @@
 package watcher
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -812,6 +815,137 @@ func TestEventChmodFile(t *testing.T) {
 	}()
 
 	wg.Wait()
+}
+
+func TestRegexFilterHook(t *testing.T) {
+	type args struct {
+		info     fileInfo
+	}
+	tests := []struct {
+		name string
+		args args
+		wantSkip bool
+	}{
+		{name:"shouldKeepFileMatchingRegex", args: args{info: fileInfo{name: "dd.txt"}}, wantSkip: false},
+		{name: "shouldIgnoreFileNotMatchingRegex", args: args{info: fileInfo{name: "dd.md"}}, wantSkip: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			filter := RegexFilterHook(regexp.MustCompile(".+?.txt$"), false)
+			err := filter(&tt.args.info, "-")
+			if tt.wantSkip && err != ErrSkip {
+				t.Errorf("expected %v to be skipped", tt.args.info)
+			}
+			if !tt.wantSkip && err != nil {
+				t.Errorf("%v should not have been skipped", tt.args.info)
+			}
+		})
+	}
+}
+
+func TestFilterFile(t *testing.T) {
+	testDir, teardown := setup(t)
+	defer teardown()
+
+	w := New()
+	w.AddFilterHook(func(info os.FileInfo, fullPath string) error {
+		if strings.HasSuffix(info.Name(), ".txt") {
+			return ErrSkip
+		}
+		return nil
+	})
+
+	// Add the testDir to the watchlist.
+	if err := w.AddRecursive(testDir); err != nil {
+		t.Fatal(err)
+	}
+
+	files := map[string]bool{
+		"newfile_1.txt": false,
+		"newfile_2.txt": false,
+		"newfile_3.wav": false,
+	}
+
+	for f := range files {
+		filePath := filepath.Join(testDir, f)
+		if err := ioutil.WriteFile(filePath, []byte{}, 0755); err != nil {
+			t.Error(err)
+		}
+	}
+
+	go func() {
+		// Start the watching process.
+		if err := w.Start(time.Millisecond * 100); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	go func() {
+		for {
+			_ = <-w.Event
+			// do nothing but dequeue to prevent dead lock
+		}
+	}()
+
+	w.Wait()
+	for _, info := range w.WatchedFiles() {
+		if strings.HasSuffix(info.Name(), ".txt") {
+			t.Fatal("File should have been ignored")
+		}
+	}
+}
+
+func TestFilterFileShouldAlsoApplyOnRootFolder(t *testing.T) {
+	testDir, teardown := setup(t)
+	defer teardown()
+
+	w := New()
+	w.AddFilterHook(func(info os.FileInfo, fullPath string) error {
+		if info.IsDir() {
+			return ErrSkip
+		}
+		return nil
+	})
+
+	// Add the testDir to the watchlist.
+	if err := w.Add(testDir); err != nil {
+		t.Fatal(err)
+	}
+
+	files := map[string]bool{
+		"newfile_1.txt": false,
+		"newfile_2.txt": false,
+		"newfile_3.txt": false,
+	}
+
+	for f := range files {
+		filePath := filepath.Join(testDir, f)
+		if err := ioutil.WriteFile(filePath, []byte{}, 0755); err != nil {
+			t.Error(err)
+		}
+	}
+
+	go func() {
+		// Start the watching process.
+		if err := w.Start(time.Millisecond * 100); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	go func() {
+		for {
+			_ = <-w.Event
+			// do nothing but dequeue to prevent dead lock
+		}
+	}()
+
+	w.Wait()
+	for _, info := range w.WatchedFiles() {
+		fmt.Println(info.Name())
+		if info.Name() == filepath.Base(testDir) {
+			t.Fatalf("the directory itself '%s'hould have been ignored", info.Name())
+		}
+	}
 }
 
 func TestWatcherStartWithInvalidDuration(t *testing.T) {

@@ -233,6 +233,16 @@ func (w *Watcher) list(name string) (map[string]os.FileInfo, error) {
 	}
 
 	fileList[name] = stat
+	for _, f := range w.ffh {
+		err := f(stat, name)
+		if err == ErrSkip {
+			delete(fileList, name)
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	// If it's not a directory, just return.
 	if !stat.IsDir() {
