@@ -58,7 +58,7 @@ func setup(t testing.TB) (string, func()) {
 		t.Fatal(err)
 	}
 	return abs, func() {
-		if os.RemoveAll(testDir); err != nil {
+		if err = os.RemoveAll(testDir); err != nil {
 			t.Fatal(err)
 		}
 	}
