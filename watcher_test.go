@@ -240,6 +240,44 @@ func TestIgnore(t *testing.T) {
 	}
 }
 
+func TestUnIgnore(t *testing.T) {
+	testDir, teardown := setup(t)
+	defer teardown()
+
+	w := New()
+
+	err := w.Add(testDir)
+	if err != nil {
+		t.Errorf("expected error to be nil, got %s", err)
+	}
+	if len(w.files) != 7 {
+		t.Errorf("expected len(w.files) to be 7, got %d", len(w.files))
+	}
+
+	err = w.Ignore(testDir)
+	if err != nil {
+		t.Errorf("expected error to be nil, got %s", err)
+	}
+	if len(w.files) != 0 {
+		t.Errorf("expected len(w.files) to be 0, got %d", len(w.files))
+	}
+
+	err = w.UnIgnore(testDir)
+	if err != nil {
+		t.Errorf("expected error to be nil, got %s", err)
+	}
+	
+
+	// Now try to add the ignored directory.
+	err = w.Add(testDir)
+	if err != nil {
+		t.Errorf("expected error to be nil, got %s", err)
+	}
+	if len(w.files) < 0 {
+		t.Errorf("expected len(w.files) to be greater than 0, got %d", len(w.files))
+	}
+}
+
 func TestRemove(t *testing.T) {
 	testDir, teardown := setup(t)
 	defer teardown()

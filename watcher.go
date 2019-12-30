@@ -428,6 +428,20 @@ func (w *Watcher) Ignore(paths ...string) (err error) {
 	return nil
 }
 
+// UnIgnore removes paths from ignored paths.
+func (w *Watcher) UnIgnore(paths ...string) (err error) {
+	for _, path := range paths {
+		path, err = filepath.Abs(path)
+		if err != nil {
+			return err
+		}
+		w.mu.Lock()
+		delete(w.ignored, path)
+		w.mu.Unlock()
+	}
+	return nil
+}
+
 // WatchedFiles returns a map of files added to a Watcher.
 func (w *Watcher) WatchedFiles() map[string]os.FileInfo {
 	w.mu.Lock()
@@ -657,7 +671,7 @@ func (w *Watcher) pollEvents(files map[string]os.FileInfo, evt chan Event,
 					Op:       Move,
 					Path:     path2,
 					OldPath:  path1,
-					FileInfo: info1,
+					FileInfo: info2,
 				}
 				// If they are from the same directory, it's a rename
 				// instead of a move event.
