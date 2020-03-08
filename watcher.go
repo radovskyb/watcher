@@ -433,7 +433,7 @@ func (w *Watcher) WatchedFiles() map[string]os.FileInfo {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	files := make(map[string]os.FileInfo)
+	files := make(map[string]os.FileInfo, len(w.files))
 	for k, v := range w.files {
 		files[k] = v
 	}
