@@ -3,13 +3,14 @@ package watcher
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/spf13/afero"
 )
 
 var (
@@ -129,6 +130,7 @@ type Watcher struct {
 	ops          map[Op]struct{}        // Op filtering.
 	ignoreHidden bool                   // ignore hidden files or not.
 	maxEvents    int                    // max sent events per cycle
+	fs           afero.Fs               // filesystem to use
 }
 
 // New creates a new Watcher.
@@ -147,7 +149,14 @@ func New() *Watcher {
 		files:   make(map[string]os.FileInfo),
 		ignored: make(map[string]struct{}),
 		names:   make(map[string]bool),
+		fs:      afero.NewOsFs(),
 	}
+}
+
+// SetFileSystem lets you specify an alternative FS to work against.
+// The default is afero's OsFs which maps to the system FS.
+func (w *Watcher) SetFileSystem(fs afero.Fs) {
+	w.fs = fs
 }
 
 // SetMaxEvents controls the maximum amount of events that are sent on
@@ -227,7 +236,7 @@ func (w *Watcher) list(name string) (map[string]os.FileInfo, error) {
 	fileList := make(map[string]os.FileInfo)
 
 	// Make sure name exists.
-	stat, err := os.Stat(name)
+	stat, err := w.fs.Stat(name)
 	if err != nil {
 		return nil, err
 	}
@@ -240,7 +249,7 @@ func (w *Watcher) list(name string) (map[string]os.FileInfo, error) {
 	}
 
 	// It's a directory.
-	fInfoList, err := ioutil.ReadDir(name)
+	fInfoList, err := afero.ReadDir(w.fs, name)
 	if err != nil {
 		return nil, err
 	}
@@ -303,7 +312,7 @@ func (w *Watcher) AddRecursive(name string) (err error) {
 func (w *Watcher) listRecursive(name string) (map[string]os.FileInfo, error) {
 	fileList := make(map[string]os.FileInfo)
 
-	return fileList, filepath.Walk(name, func(path string, info os.FileInfo, err error) error {
+	return fileList, afero.Walk(w.fs, name, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
