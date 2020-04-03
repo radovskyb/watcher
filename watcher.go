@@ -199,10 +199,7 @@ func (w *Watcher) Add(name string) (err error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	name, err = filepath.Abs(name)
-	if err != nil {
-		return err
-	}
+	name = filepath.Clean(name)
 
 	// If name is on the ignored list or if hidden files are
 	// ignored and name is a hidden file or directory, simply return.
@@ -290,10 +287,7 @@ func (w *Watcher) AddRecursive(name string) (err error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	name, err = filepath.Abs(name)
-	if err != nil {
-		return err
-	}
+	name = filepath.Clean(name)
 
 	fileList, err := w.listRecursive(name)
 	if err != nil {
@@ -353,10 +347,7 @@ func (w *Watcher) Remove(name string) (err error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	name, err = filepath.Abs(name)
-	if err != nil {
-		return err
-	}
+	name = filepath.Clean(name)
 
 	// Remove the name from w's names list.
 	delete(w.names, name)
@@ -389,10 +380,7 @@ func (w *Watcher) RemoveRecursive(name string) (err error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	name, err = filepath.Abs(name)
-	if err != nil {
-		return err
-	}
+	name = filepath.Clean(name)
 
 	// Remove the name from w's names list.
 	delete(w.names, name)
@@ -422,10 +410,7 @@ func (w *Watcher) RemoveRecursive(name string) (err error) {
 // For files that are already added, Ignore removes them.
 func (w *Watcher) Ignore(paths ...string) (err error) {
 	for _, path := range paths {
-		path, err = filepath.Abs(path)
-		if err != nil {
-			return err
-		}
+		path = filepath.Clean(path)
 		// Remove any of the paths that were already added.
 		if err := w.RemoveRecursive(path); err != nil {
 			return err
