@@ -3,13 +3,14 @@ package watcher
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/spf13/afero"
 )
 
 var (
@@ -129,6 +130,7 @@ type Watcher struct {
 	ops          map[Op]struct{}        // Op filtering.
 	ignoreHidden bool                   // ignore hidden files or not.
 	maxEvents    int                    // max sent events per cycle
+	fs           afero.Fs               // filesystem to use
 }
 
 // New creates a new Watcher.
@@ -147,7 +149,14 @@ func New() *Watcher {
 		files:   make(map[string]os.FileInfo),
 		ignored: make(map[string]struct{}),
 		names:   make(map[string]bool),
+		fs:      afero.NewOsFs(),
 	}
+}
+
+// SetFileSystem lets you specify an alternative FS to work against.
+// The default is afero's OsFs which maps to the system FS.
+func (w *Watcher) SetFileSystem(fs afero.Fs) {
+	w.fs = fs
 }
 
 // SetMaxEvents controls the maximum amount of events that are sent on
@@ -190,10 +199,7 @@ func (w *Watcher) Add(name string) (err error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	name, err = filepath.Abs(name)
-	if err != nil {
-		return err
-	}
+	name = filepath.Clean(name)
 
 	// If name is on the ignored list or if hidden files are
 	// ignored and name is a hidden file or directory, simply return.
@@ -227,7 +233,7 @@ func (w *Watcher) list(name string) (map[string]os.FileInfo, error) {
 	fileList := make(map[string]os.FileInfo)
 
 	// Make sure name exists.
-	stat, err := os.Stat(name)
+	stat, err := w.fs.Stat(name)
 	if err != nil {
 		return nil, err
 	}
@@ -240,7 +246,7 @@ func (w *Watcher) list(name string) (map[string]os.FileInfo, error) {
 	}
 
 	// It's a directory.
-	fInfoList, err := ioutil.ReadDir(name)
+	fInfoList, err := afero.ReadDir(w.fs, name)
 	if err != nil {
 		return nil, err
 	}
@@ -281,10 +287,7 @@ func (w *Watcher) AddRecursive(name string) (err error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	name, err = filepath.Abs(name)
-	if err != nil {
-		return err
-	}
+	name = filepath.Clean(name)
 
 	fileList, err := w.listRecursive(name)
 	if err != nil {
@@ -303,7 +306,7 @@ func (w *Watcher) AddRecursive(name string) (err error) {
 func (w *Watcher) listRecursive(name string) (map[string]os.FileInfo, error) {
 	fileList := make(map[string]os.FileInfo)
 
-	return fileList, filepath.Walk(name, func(path string, info os.FileInfo, err error) error {
+	return fileList, afero.Walk(w.fs, name, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -344,10 +347,7 @@ func (w *Watcher) Remove(name string) (err error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	name, err = filepath.Abs(name)
-	if err != nil {
-		return err
-	}
+	name = filepath.Clean(name)
 
 	// Remove the name from w's names list.
 	delete(w.names, name)
@@ -380,10 +380,7 @@ func (w *Watcher) RemoveRecursive(name string) (err error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	name, err = filepath.Abs(name)
-	if err != nil {
-		return err
-	}
+	name = filepath.Clean(name)
 
 	// Remove the name from w's names list.
 	delete(w.names, name)
@@ -413,10 +410,7 @@ func (w *Watcher) RemoveRecursive(name string) (err error) {
 // For files that are already added, Ignore removes them.
 func (w *Watcher) Ignore(paths ...string) (err error) {
 	for _, path := range paths {
-		path, err = filepath.Abs(path)
-		if err != nil {
-			return err
-		}
+		path = filepath.Clean(path)
 		// Remove any of the paths that were already added.
 		if err := w.RemoveRecursive(path); err != nil {
 			return err
