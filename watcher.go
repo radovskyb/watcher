@@ -508,19 +508,28 @@ func (w *Watcher) retrieveFileList() map[string]os.FileInfo {
 			}
 		} else {
 			list, err = w.list(name)
-			if err != nil {
-				if os.IsNotExist(err) {
-					w.mu.Unlock()
-					if name == err.(*os.PathError).Path {
-						w.Error <- ErrWatchedFileDeleted
-						w.Remove(name)
-					}
-					w.mu.Lock()
-				} else {
-					w.Error <- err
-				}
+			if err == nil {
+				goto IndexFileList
+			}
+			w.Error <- err
+
+			var toRemove string
+			switch x := err.(type) {
+			case *os.PathError:
+				toRemove = x.Path
+			case *os.SyscallError:
+				fmt.Printf("watcher: syscall error returned by list(%s): %s", name, x)
+			default:
+				fmt.Printf("watcher: unrecognized error type returned by list(%s): %T", name, err)
+			}
+			if len(toRemove) > 0 {
+				w.mu.Unlock()
+				w.Error <- ErrWatchedFileDeleted
+				w.Remove(toRemove)
+				w.mu.Lock()
 			}
 		}
+	IndexFileList:
 		// Add the file's to the file list.
 		for k, v := range list {
 			fileList[k] = v
