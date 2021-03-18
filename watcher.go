@@ -511,20 +511,20 @@ func (w *Watcher) retrieveFileList() map[string]os.FileInfo {
 			if err == nil {
 				goto IndexFileList
 			}
-			w.Error <- err
-
 			var toRemove string
 			switch x := err.(type) {
 			case *os.PathError:
+				w.Error <- ErrWatchedFileDeleted
 				toRemove = x.Path
 			case *os.SyscallError:
 				fmt.Printf("watcher: syscall error returned by list(%s): %s", name, x)
+				w.Error <- err
 			default:
 				fmt.Printf("watcher: unrecognized error type returned by list(%s): %T", name, err)
+				w.Error <- err
 			}
 			if len(toRemove) > 0 {
 				w.mu.Unlock()
-				w.Error <- ErrWatchedFileDeleted
 				w.Remove(toRemove)
 				w.mu.Lock()
 			}
