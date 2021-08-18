@@ -623,6 +623,77 @@ func TestScanNow(t *testing.T) {
 	}
 }
 
+func TestSizeOnlyChange(t *testing.T) {
+	testDir, teardown := setup(t)
+	defer teardown()
+
+	w := New()
+	w.FilterOps(Write)
+
+	// Add the testDir to the watchlist.
+	testFilePath := filepath.Join(testDir, "file.txt")
+	if err := w.Add(testFilePath); err != nil {
+		t.Fatal(err)
+	}
+
+	done := make(chan struct{})
+	go func() {
+		evt := <-w.Event
+		if evt.Op == Write && evt.Path == testFilePath {
+			close(done)
+		} else {
+			t.Fatal("unexpected event")
+		}
+	}()
+
+	// Start scanning with a very long poll duration
+	go func() {
+		if err := w.Start(time.Hour); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	w.Wait()
+	defer w.Close()
+
+	// perform initial scan, which should yield no changes
+	// this ensures the initial scan has happened, and means the watcher is now waiting 1hr before scanning again
+	if err := w.ScanNow(); err != nil {
+		t.Error(err)
+	}
+
+	// modify the test file, we will not receive events due to the 1hr poll duration
+	// when modifying, we ensure the mod time does not change. this tests the situation where a file system has to
+	// be able to detect multiple file changes within its mod time resolution, which on some systems can be 1 or 2
+	// seconds. the watcher should detect the change because the size of the file has changed.
+	stat, err := os.Stat(testFilePath)
+	if err != nil {
+		t.Error(err)
+	}
+	if err = ioutil.WriteFile(testFilePath, []byte("bigger than before"), 0755); err != nil {
+		t.Error(err)
+	}
+	if err = os.Chtimes(testFilePath, stat.ModTime(), stat.ModTime()); err != nil {
+		t.Error(err)
+	}
+
+	// issue a scan now, and we will receive the events while ScanNow() is running.
+	if err := w.ScanNow(); err != nil {
+		t.Error(err)
+	}
+
+	// all events should have been received *whilst* ScanNow() was running, but our handler may still be processing
+	// the event, so we'll wait for a little while
+	// closed
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("Did not detect a size only change (no mod time change)")
+	}
+
+	w.Close()
+}
+
 func TestEventAddFile(t *testing.T) {
 	testDir, teardown := setup(t)
 	defer teardown()

@@ -693,7 +693,7 @@ func (w *Watcher) pollEvents(files map[string]os.FileInfo, evt chan Event,
 			creates[path] = info
 			continue
 		}
-		if oldInfo.ModTime() != info.ModTime() {
+		if oldInfo.ModTime() != info.ModTime() || oldInfo.Size() != info.Size() {
 			select {
 			case <-cancel:
 				return
