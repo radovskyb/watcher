@@ -315,16 +315,6 @@ func (w *Watcher) listRecursive(name string) (map[string]os.FileInfo, error) {
 			return err
 		}
 
-		for _, f := range w.ffh {
-			err := f(info, path)
-			if err == ErrSkip {
-				return nil
-			}
-			if err != nil {
-				return err
-			}
-		}
-
 		// If path is ignored and it's a directory, skip the directory. If it's
 		// ignored and it's a single file, skip the file.
 		_, ignored := w.ignored[path]
@@ -340,6 +330,17 @@ func (w *Watcher) listRecursive(name string) (map[string]os.FileInfo, error) {
 			}
 			return nil
 		}
+
+		for _, f := range w.ffh {
+			err := f(info, path)
+			if err == ErrSkip {
+				return nil
+			}
+			if err != nil {
+				return err
+			}
+		}
+
 		// Add the path and it's info to the file list.
 		fileList[path] = info
 		return nil
