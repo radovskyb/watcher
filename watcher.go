@@ -566,6 +566,8 @@ func (w *Watcher) Start(d time.Duration) error {
 
 	var scanNowRequest chan struct{}
 
+	defer close(w.Closed)
+
 	for {
 		// done lets the inner polling cycle loop know when the
 		// current cycle's method has finished executing.
@@ -580,6 +582,7 @@ func (w *Watcher) Start(d time.Duration) error {
 
 		// cancel can be used to cancel the current event polling function.
 		cancel := make(chan struct{})
+		defer close(cancel)
 
 		// Look for events.
 		go func() {
@@ -594,8 +597,6 @@ func (w *Watcher) Start(d time.Duration) error {
 		for {
 			select {
 			case <-w.close:
-				close(cancel)
-				close(w.Closed)
 				return nil
 			case event := <-evt:
 				if len(w.ops) > 0 { // Filter Ops.
@@ -629,6 +630,7 @@ func (w *Watcher) Start(d time.Duration) error {
 		// If a request to do a full scan is received, handle it and then signal to the requester it is complete.
 		select {
 		case <-w.close: // break out of wait early if we get a Close
+			return nil
 		case scanNowRequest = <-w.scanNow: // sync scan request received
 		case <-time.After(d): // periodic re-roll time elapsed
 		}
