@@ -339,11 +339,10 @@ func (w *Watcher) listRecursive(name string) (map[string]os.FileInfo, error) {
 	})
 }
 
-// Remove removes either a single file or directory from the file's list.
-func (w *Watcher) Remove(name string) (err error) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-
+// Internal method that removes either a single file or directory from the
+// file's list. There are no mutex operations so it is safe to call from inside
+// mutex locking methods.
+func (w *Watcher) remove(name string) (err error) {
 	name, err = filepath.Abs(name)
 	if err != nil {
 		return err
@@ -374,12 +373,17 @@ func (w *Watcher) Remove(name string) (err error) {
 	return nil
 }
 
-// RemoveRecursive removes either a single file or a directory recursively from
-// the file's list.
-func (w *Watcher) RemoveRecursive(name string) (err error) {
+// Remove removes either a single file or directory from the file's list.
+func (w *Watcher) Remove(name string) (err error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
+	return w.remove(name)
+}
 
+// Private method that removes either a single file or a directory recursively from
+// the file's list. There are no mutex operations so it is safe to call from inside
+// mutex locking methods.
+func (w *Watcher) removeRecursive(name string) (err error) {
 	name, err = filepath.Abs(name)
 	if err != nil {
 		return err
@@ -406,6 +410,15 @@ func (w *Watcher) RemoveRecursive(name string) (err error) {
 		}
 	}
 	return nil
+}
+
+// RemoveRecursive is a public method that removes either a single file or a
+// directory recursively from the file's list. Locks the mutex, so do not
+// call from within mutex-locking methods.
+func (w *Watcher) RemoveRecursive(name string) (err error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.removeRecursive(name)
 }
 
 // Ignore adds paths that should be ignored.
@@ -496,12 +509,10 @@ func (w *Watcher) retrieveFileList() map[string]os.FileInfo {
 			list, err = w.listRecursive(name)
 			if err != nil {
 				if os.IsNotExist(err) {
-					w.mu.Unlock()
 					if name == err.(*os.PathError).Path {
 						w.Error <- ErrWatchedFileDeleted
-						w.RemoveRecursive(name)
+						w.removeRecursive(name)
 					}
-					w.mu.Lock()
 				} else {
 					w.Error <- err
 				}
@@ -510,12 +521,10 @@ func (w *Watcher) retrieveFileList() map[string]os.FileInfo {
 			list, err = w.list(name)
 			if err != nil {
 				if os.IsNotExist(err) {
-					w.mu.Unlock()
 					if name == err.(*os.PathError).Path {
 						w.Error <- ErrWatchedFileDeleted
-						w.Remove(name)
+						w.remove(name)
 					}
-					w.mu.Lock()
 				} else {
 					w.Error <- err
 				}
