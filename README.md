@@ -53,6 +53,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"time"
 
 	"github.com/radovskyb/watcher"
