@@ -709,6 +709,7 @@ func (w *Watcher) Close() {
 	w.running = false
 	w.files = make(map[string]os.FileInfo)
 	w.names = make(map[string]bool)
+	w.wg.Add(1)
 	w.mu.Unlock()
 	// Send a close signal to the Start method.
 	w.close <- struct{}{}
