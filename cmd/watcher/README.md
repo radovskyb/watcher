@@ -3,7 +3,7 @@
 # Installation
 
 ```shell
-go get -u github.com/radovskyb/watcher/...
+go get -u github.com/airplanedev/watcher/...
 ```
 
 # Usage

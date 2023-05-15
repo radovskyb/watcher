@@ -1,7 +1,5 @@
 # watcher
 
-[![Build Status](https://travis-ci.org/radovskyb/watcher.svg?branch=master)](https://travis-ci.org/radovskyb/watcher)
-
 `watcher` is a Go package for watching for files or directory changes (recursively or non recursively) without using filesystem events, which allows it to work cross platform consistently.
 
 `watcher` watches for changes and notifies over channels either anytime an event or an error has occurred.
@@ -24,7 +22,7 @@ Events contain the `os.FileInfo` of the file or directory that the event is base
 # Installation
 
 ```shell
-go get -u github.com/radovskyb/watcher/...
+go get -u github.com/airplanedev/watcher/...
 ```
 
 # Features
@@ -55,7 +53,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/radovskyb/watcher"
+	"github.com/airplanedev/watcher"
 )
 
 func main() {
