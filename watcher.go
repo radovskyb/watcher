@@ -311,6 +311,9 @@ func (w *Watcher) listRecursive(name string) (map[string]os.FileInfo, error) {
 		for _, f := range w.ffh {
 			err := f(info, path)
 			if err == ErrSkip {
+				if info.IsDir() {
+					return filepath.SkipDir
+				}
 				return nil
 			}
 			if err != nil {
