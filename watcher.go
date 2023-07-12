@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -495,29 +496,35 @@ func (w *Watcher) retrieveFileList() map[string]os.FileInfo {
 		if recursive {
 			list, err = w.listRecursive(name)
 			if err != nil {
-				if os.IsNotExist(err) {
-					w.mu.Unlock()
-					if name == err.(*os.PathError).Path {
-						w.Error <- ErrWatchedFileDeleted
-						w.RemoveRecursive(name)
+				e, ok := err.(syscall.Errno)
+				if ok && e.Is(err) {
+					if os.IsNotExist(err) {
+						w.mu.Unlock()
+						if name == err.(*os.PathError).Path {
+							w.Error <- ErrWatchedFileDeleted
+							w.RemoveRecursive(name)
+						}
+						w.mu.Lock()
+					} else {
+						w.Error <- err
 					}
-					w.mu.Lock()
-				} else {
-					w.Error <- err
 				}
 			}
 		} else {
 			list, err = w.list(name)
 			if err != nil {
-				if os.IsNotExist(err) {
-					w.mu.Unlock()
-					if name == err.(*os.PathError).Path {
-						w.Error <- ErrWatchedFileDeleted
-						w.Remove(name)
+				e, ok := err.(syscall.Errno)
+				if ok && e.Is(err) {
+					if os.IsNotExist(err) {
+						w.mu.Unlock()
+						if name == err.(*os.PathError).Path {
+							w.Error <- ErrWatchedFileDeleted
+							w.Remove(name)
+						}
+						w.mu.Lock()
+					} else {
+						w.Error <- err
 					}
-					w.mu.Lock()
-				} else {
-					w.Error <- err
 				}
 			}
 		}
