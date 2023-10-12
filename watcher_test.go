@@ -485,7 +485,7 @@ func TestListFiles(t *testing.T) {
 	w := New()
 	w.AddRecursive(testDir)
 
-	fileList := w.retrieveFileList()
+	_, fileList := w.retrieveFileList()
 	if fileList == nil {
 		t.Error("expected file list to not be empty")
 	}
@@ -895,7 +895,7 @@ func BenchmarkListFiles(b *testing.B) {
 	}
 
 	for i := 0; i < b.N; i++ {
-		fileList := w.retrieveFileList()
+		_, fileList := w.retrieveFileList()
 		if fileList == nil {
 			b.Fatal("expected file list to not be empty")
 		}
@@ -914,7 +914,7 @@ func TestClose(t *testing.T) {
 	}
 
 	wf := w.WatchedFiles()
-	fileList := w.retrieveFileList()
+	_, fileList := w.retrieveFileList()
 
 	if len(wf) != len(fileList) {
 		t.Fatalf("expected len of wf to be %d, got %d", len(fileList), len(wf))
@@ -924,7 +924,7 @@ func TestClose(t *testing.T) {
 	w.Close()
 
 	wf = w.WatchedFiles()
-	fileList = w.retrieveFileList()
+	_, fileList = w.retrieveFileList()
 
 	// Close will be a no-op so there will still be len(fileList) files.
 	if len(wf) != len(fileList) {
@@ -963,7 +963,7 @@ func TestWatchedFiles(t *testing.T) {
 	}
 
 	wf := w.WatchedFiles()
-	fileList := w.retrieveFileList()
+	_, fileList := w.retrieveFileList()
 
 	if len(wf) != len(fileList) {
 		t.Fatalf("expected len of wf to be %d, got %d", len(fileList), len(wf))

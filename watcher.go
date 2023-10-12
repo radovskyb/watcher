@@ -485,10 +485,13 @@ func (w *Watcher) TriggerEvent(eventType Op, file os.FileInfo) {
 	w.Event <- Event{Op: eventType, Path: "-", FileInfo: file}
 }
 
-func (w *Watcher) retrieveFileList() map[string]os.FileInfo {
+func (w *Watcher) retrieveFileList() (map[string]os.FileInfo, map[string]os.FileInfo) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-
+	oldFileList := make(map[string]os.FileInfo, len(w.files))
+	for k, v := range w.files {
+		oldFileList[k] = v
+	}
 	fileList := make(map[string]os.FileInfo)
 
 	var list map[string]os.FileInfo
@@ -530,7 +533,7 @@ func (w *Watcher) retrieveFileList() map[string]os.FileInfo {
 		}
 	}
 
-	return fileList
+	return oldFileList, fileList
 }
 
 // Start begins the polling cycle which repeats every specified
@@ -563,14 +566,14 @@ func (w *Watcher) Start(d time.Duration) error {
 		evt := make(chan Event)
 
 		// Retrieve the file list for all watched file's and dirs.
-		fileList := w.retrieveFileList()
+		oldFileList, fileList := w.retrieveFileList()
 
 		// cancel can be used to cancel the current event polling function.
 		cancel := make(chan struct{})
 
 		// Look for events.
 		go func() {
-			w.pollEvents(fileList, evt, cancel)
+			w.pollEvents(oldFileList, fileList, evt, cancel)
 			done <- struct{}{}
 		}()
 
@@ -612,7 +615,7 @@ func (w *Watcher) Start(d time.Duration) error {
 	}
 }
 
-func (w *Watcher) pollEvents(files map[string]os.FileInfo, evt chan Event,
+func (w *Watcher) pollEvents(oldFileList map[string]os.FileInfo, files map[string]os.FileInfo, evt chan Event,
 	cancel chan struct{}) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
@@ -622,7 +625,7 @@ func (w *Watcher) pollEvents(files map[string]os.FileInfo, evt chan Event,
 	removes := make(map[string]os.FileInfo)
 
 	// Check for removed files.
-	for path, info := range w.files {
+	for path, info := range oldFileList {
 		if _, found := files[path]; !found {
 			removes[path] = info
 		}
@@ -630,7 +633,7 @@ func (w *Watcher) pollEvents(files map[string]os.FileInfo, evt chan Event,
 
 	// Check for created files, writes and chmods.
 	for path, info := range files {
-		oldInfo, found := w.files[path]
+		oldInfo, found := oldFileList[path]
 		if !found {
 			// A file was created.
 			creates[path] = info
