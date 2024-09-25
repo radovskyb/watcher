@@ -614,6 +614,10 @@ func (w *Watcher) pollEvents(files map[string]os.FileInfo, evt chan Event,
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
+	if !w.running {
+		return
+	}
+
 	// Store create and remove events for use to check for rename events.
 	creates := make(map[string]os.FileInfo)
 	removes := make(map[string]os.FileInfo)
@@ -697,6 +701,18 @@ func (w *Watcher) pollEvents(files map[string]os.FileInfo, evt chan Event,
 // Wait blocks until the watcher is started.
 func (w *Watcher) Wait() {
 	w.wg.Wait()
+}
+
+func (w *Watcher) Suspend() {
+	w.mu.Lock()
+	w.running = false
+	w.mu.Unlock()
+}
+
+func (w *Watcher) Resume() {
+	w.mu.Lock()
+	w.running = true
+	w.mu.Unlock()
 }
 
 // Close stops a Watcher and unlocks its mutex, then sends a close signal.
