@@ -511,10 +511,19 @@ func (w *Watcher) retrieveFileList() map[string]os.FileInfo {
 			if err != nil {
 				if os.IsNotExist(err) {
 					w.mu.Unlock()
-					if name == err.(*os.PathError).Path {
-						w.Error <- ErrWatchedFileDeleted
-						w.Remove(name)
+					pErr,ok:=err.(*os.PathError)
+					if !ok {
+						w.Error<-errors.New("error: err marshal to os.PathError failed.")
+					}else {
+						if name == pErr.Path {
+							w.Error <- ErrWatchedFileDeleted
+							w.RemoveRecursive(name)
+						}
 					}
+					//if name == err.(*os.PathError).Path {
+					//	w.Error <- ErrWatchedFileDeleted
+					//	w.RemoveRecursive(name)
+					//}
 					w.mu.Lock()
 				} else {
 					w.Error <- err
