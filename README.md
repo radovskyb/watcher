@@ -27,6 +27,12 @@ Events contain the `os.FileInfo` of the file or directory that the event is base
 go get -u github.com/radovskyb/watcher/...
 ```
 
+Install the CLI tool only:
+
+```shell
+go install github.com/radovskyb/watcher/cmd/watcher@latest
+```
+
 # Features
 
 - Customizable polling interval.
