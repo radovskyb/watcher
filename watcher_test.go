@@ -1010,3 +1010,54 @@ func TestOpsString(t *testing.T) {
 		}
 	}
 }
+
+func TestRemoveRecursivePreservesSiblingPrefix(t *testing.T) {
+	for _, ignore := range []bool{false, true} {
+		name := "RemoveRecursive"
+		if ignore {
+			name = "Ignore"
+		}
+		t.Run(name, func(t *testing.T) {
+			dir, err := ioutil.TempDir("", "watcher-prefix")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer os.RemoveAll(dir)
+			root := filepath.Join(dir, "root")
+			sibling := filepath.Join(dir, "root-other")
+			for _, path := range []string{filepath.Join(root, "nested"), filepath.Join(sibling, "nested")} {
+				if err := os.MkdirAll(path, 0755); err != nil {
+					t.Fatal(err)
+				}
+				if err := ioutil.WriteFile(filepath.Join(path, "file"), []byte("x"), 0644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			w := New()
+			for _, path := range []string{root, sibling} {
+				if err := w.AddRecursive(path); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if ignore {
+				err = w.Ignore(root)
+			} else {
+				err = w.RemoveRecursive(root)
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := w.WatchedFiles()
+			for _, path := range []string{root, filepath.Join(root, "nested"), filepath.Join(root, "nested", "file")} {
+				if _, ok := got[path]; ok {
+					t.Errorf("removed path still watched: %s", path)
+				}
+			}
+			for _, path := range []string{sibling, filepath.Join(sibling, "nested"), filepath.Join(sibling, "nested", "file")} {
+				if _, ok := got[path]; !ok {
+					t.Errorf("sibling path no longer watched: %s", path)
+				}
+			}
+		})
+	}
+}
