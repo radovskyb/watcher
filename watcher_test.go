@@ -1061,3 +1061,23 @@ func TestRemoveRecursivePreservesSiblingPrefix(t *testing.T) {
 		})
 	}
 }
+
+func TestRemoveRecursiveRoot(t *testing.T) {
+	root := filepath.VolumeName(os.TempDir()) + string(os.PathSeparator)
+	child := filepath.Join(root, "watcher-test", "nested", "file")
+	w := New()
+	w.names[root] = true
+	w.files[root] = &fileInfo{dir: true}
+	w.files[filepath.Dir(child)] = &fileInfo{dir: true}
+	w.files[child] = &fileInfo{}
+
+	if err := w.RemoveRecursive(root); err != nil {
+		t.Fatal(err)
+	}
+	if len(w.WatchedFiles()) != 0 {
+		t.Errorf("root removal left watched files: %v", w.WatchedFiles())
+	}
+	if _, ok := w.names[root]; ok {
+		t.Error("removed root remains registered")
+	}
+}
