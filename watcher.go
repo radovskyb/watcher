@@ -400,8 +400,9 @@ func (w *Watcher) RemoveRecursive(name string) (err error) {
 
 	// If it's a directory, delete all of it's contents recursively
 	// from w.files.
+	prefix := strings.TrimSuffix(name, string(os.PathSeparator)) + string(os.PathSeparator)
 	for path := range w.files {
-		if strings.HasPrefix(path, name) {
+		if path == name || strings.HasPrefix(path, prefix) {
 			delete(w.files, path)
 		}
 	}
